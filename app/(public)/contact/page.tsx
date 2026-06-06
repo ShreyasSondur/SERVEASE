@@ -1,0 +1,123 @@
+"use client";
+
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
+import { Mail, Phone, MapPin, ArrowUpRight } from "lucide-react";
+
+export default function Contact() {
+  return (
+    <div className="relative min-h-screen bg-[#0b0a0a] flex flex-col w-full font-sans text-white">
+      <Navbar />
+
+      <main className="flex-grow flex items-center justify-center w-full max-w-[1100px] mx-auto px-4 sm:px-8 pt-28 pb-12">
+        <div className="w-full flex flex-col lg:flex-row gap-16 lg:gap-24">
+          
+          {/* Left Column - Typography & Info */}
+          <div className="w-full lg:w-[45%] flex flex-col justify-center">
+            <h1 className="text-4xl sm:text-5xl font-serif text-white tracking-wide mb-6">
+              Let's start a <br/>
+              <span className="text-[#d4933a] italic">conversation.</span>
+            </h1>
+            <p className="text-[#888] text-[15px] leading-relaxed mb-12 max-w-md font-light">
+              Whether you're looking for a service, interested in partnering, or just have a question, our team is ready to provide you with the answers you need.
+            </p>
+
+            <div className="flex flex-col gap-8">
+              <div className="flex items-start gap-5 group">
+                <Mail className="w-5 h-5 text-[#d4933a] mt-0.5 shrink-0 transition-transform group-hover:-translate-y-1" />
+                <div className="flex flex-col">
+                   <span className="text-[#555] text-[10px] uppercase tracking-[0.2em] font-bold mb-1">Email</span>
+                   <a href="mailto:hello@servease.com" className="text-white text-[15px] hover:text-[#d4933a] transition-colors">
+                     hello@servease.com
+                   </a>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-5 group">
+                <Phone className="w-5 h-5 text-[#d4933a] mt-0.5 shrink-0 transition-transform group-hover:-translate-y-1" />
+                <div className="flex flex-col">
+                   <span className="text-[#555] text-[10px] uppercase tracking-[0.2em] font-bold mb-1">Phone</span>
+                   <a href="tel:+971501234567" className="text-white text-[15px] hover:text-[#d4933a] transition-colors">
+                     +971 50 123 4567
+                   </a>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-5 group">
+                <MapPin className="w-5 h-5 text-[#d4933a] mt-0.5 shrink-0 transition-transform group-hover:-translate-y-1" />
+                <div className="flex flex-col">
+                   <span className="text-[#555] text-[10px] uppercase tracking-[0.2em] font-bold mb-1">Headquarters</span>
+                   <span className="text-white text-[15px] leading-relaxed">
+                     Dubai Silicon Oasis<br/>Dubai, UAE
+                   </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column - Editorial Form */}
+          <div className="w-full lg:w-[55%] flex flex-col justify-center">
+            <div className="bg-[#111] border border-[#222] p-8 sm:p-12 rounded-2xl shadow-xl">
+              <h2 className="text-xl font-medium text-white mb-8">Send Inquiry</h2>
+              <form className="flex flex-col gap-8">
+                
+                <div className="flex flex-col sm:flex-row gap-8">
+                  <div className="flex flex-col gap-2 w-full">
+                    <label className="text-[#888] text-[11px] font-semibold tracking-wider uppercase">
+                      First Name
+                    </label>
+                    <input
+                      type="text"
+                      className="w-full bg-transparent border-b border-[#333] focus:border-[#d4933a] py-2 text-white outline-none transition-colors text-[15px]"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-2 w-full">
+                    <label className="text-[#888] text-[11px] font-semibold tracking-wider uppercase">
+                      Last Name
+                    </label>
+                    <input
+                      type="text"
+                      className="w-full bg-transparent border-b border-[#333] focus:border-[#d4933a] py-2 text-white outline-none transition-colors text-[15px]"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <label className="text-[#888] text-[11px] font-semibold tracking-wider uppercase">
+                    Email Address
+                  </label>
+                  <input
+                    type="email"
+                    className="w-full bg-transparent border-b border-[#333] focus:border-[#d4933a] py-2 text-white outline-none transition-colors text-[15px]"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-2 mt-2">
+                  <label className="text-[#888] text-[11px] font-semibold tracking-wider uppercase">
+                    Message
+                  </label>
+                  <textarea
+                    rows={1}
+                    placeholder="Tell us about your needs..."
+                    className="w-full bg-transparent border-b border-[#333] focus:border-[#d4933a] py-2 text-white outline-none transition-colors text-[15px] resize-none placeholder:text-[#444]"
+                  ></textarea>
+                </div>
+
+                <button
+                  type="button"
+                  className="group self-start flex items-center gap-3 bg-white hover:bg-[#d4933a] text-black hover:text-white font-bold tracking-widest uppercase py-3.5 px-8 rounded-full mt-4 transition-all duration-300 text-[11px]"
+                >
+                  <span>Submit Request</span>
+                  <ArrowUpRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" strokeWidth={2.5} />
+                </button>
+              </form>
+            </div>
+          </div>
+
+        </div>
+      </main>
+
+      <Footer />
+    </div>
+  );
+}
