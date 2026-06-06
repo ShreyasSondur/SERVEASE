@@ -39,7 +39,7 @@ export default function Navbar() {
           <div className="flex shrink-0 z-10">
             <Link href="/" className="flex items-center gap-2 group">
               <span className="text-2xl md:text-3xl font-black italic tracking-wide text-white uppercase select-none transition-transform group-hover:scale-[1.02]">
-                SERVE
+                SERV
                 <span className="text-gold font-extrabold text-glow">
                   EASE
                 </span>

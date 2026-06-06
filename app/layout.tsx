@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Cormorant_Garamond, DM_Sans } from "next/font/google";
 import "@/styles/globals.css";
-
 const cormorant = Cormorant_Garamond({
   variable: "--font-cormorant",
   subsets: ["latin"],
@@ -16,6 +15,9 @@ const dmSans = DM_Sans({
 
 export const metadata: Metadata = {
   title: "Servease - Professional Services On Demand",
+  icons: {
+    icon:"/images/icons.png",
+  },
   description: "Find trusted professionals for every job. Plumbing, AC Repair, Electrical and more.",
 };
 
