@@ -2,11 +2,12 @@
 
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { ImagePlus, Loader2 } from "lucide-react";
+import { ImagePlus, Loader2, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
+import axios from "axios";
 
 export default function BecomePartner() {
   const router = useRouter();
@@ -21,12 +22,14 @@ export default function BecomePartner() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [hasConsent, setHasConsent] = useState(false);
   const [error, setError] = useState("");
 
   const [emirates, setEmirates] = useState<any[]>([]);
   const [cities, setCities] = useState<any[]>([]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const fetchLocations = async () => {
       try {
         const [emRes, cityRes] = await Promise.all([
@@ -55,6 +58,7 @@ export default function BecomePartner() {
     }
 
     setUploadingImage(true);
+    setUploadProgress(0);
     setError("");
 
     try {
@@ -62,14 +66,23 @@ export default function BecomePartner() {
       uploadData.append("file", file);
       uploadData.append("upload_preset", uploadPreset);
 
-      const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
-        method: "POST",
-        body: uploadData,
-      });
+      const res = await axios.post(
+        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+        uploadData,
+        {
+          onUploadProgress: (progressEvent) => {
+            if (progressEvent.total) {
+              const percentCompleted = Math.round(
+                (progressEvent.loaded * 100) / progressEvent.total
+              );
+              setUploadProgress(percentCompleted);
+            }
+          },
+        }
+      );
 
-      const data = await res.json();
-      if (data.secure_url) {
-        setFormData({ ...formData, emirates_id_url: data.secure_url });
+      if (res.data.secure_url) {
+        setFormData({ ...formData, emirates_id_url: res.data.secure_url });
       } else {
         setError("Failed to upload image.");
       }
@@ -240,15 +253,32 @@ export default function BecomePartner() {
               <div className="relative w-full border-2 border-dashed border-[#333] hover:border-[#d4933a] bg-[#1a1a1a] rounded-xl py-6 sm:py-8 flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors group overflow-hidden">
                 {formData.emirates_id_url ? (
                   <div className="absolute inset-0 flex items-center justify-center bg-[#1a1a1a]">
-                    <img src={formData.emirates_id_url} alt="Emirate ID" className="h-full w-auto object-contain max-h-32" />
-                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <span className="text-white text-sm font-medium">Click to change</span>
+                    <img src={formData.emirates_id_url} alt="Emirate ID" className="h-full w-auto object-contain max-h-32 opacity-50" />
+                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                      <div className="bg-green-500/20 text-green-400 p-2 rounded-full mb-2 backdrop-blur-sm">
+                        <CheckCircle2 className="w-8 h-8" strokeWidth={2} />
+                      </div>
+                      <span className="text-green-400 font-medium text-sm drop-shadow-md">Uploaded Successfully</span>
+                    </div>
+                    <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <span className="text-white text-sm font-medium border border-white/30 px-4 py-2 rounded-lg">Click to change</span>
                     </div>
                   </div>
                 ) : uploadingImage ? (
-                  <div className="flex flex-col items-center gap-2">
-                    <Loader2 className="w-6 h-6 text-[#d4933a] animate-spin" />
-                    <span className="text-[#d4933a] text-[10px] tracking-wider font-semibold uppercase">Uploading...</span>
+                  <div className="flex flex-col items-center gap-3 w-full max-w-[200px] px-4">
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="w-5 h-5 text-[#d4933a] animate-spin" />
+                      <span className="text-[#d4933a] text-[10px] tracking-wider font-semibold uppercase">
+                        Uploading {uploadProgress}%
+                      </span>
+                    </div>
+                    {/* Progress Bar */}
+                    <div className="w-full h-1.5 bg-[#2a2a2a] rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-[#d4933a] rounded-full transition-all duration-300 ease-out"
+                        style={{ width: `${uploadProgress}%` }}
+                      />
+                    </div>
                   </div>
                 ) : (
                   <>
@@ -268,10 +298,47 @@ export default function BecomePartner() {
               </div>
             </div>
 
+            {/* Consent Checkbox */}
+            <div className="flex flex-col gap-2 mt-4">
+              <label className="flex items-start gap-3 group cursor-pointer">
+                <div
+                  className={`w-5 h-5 mt-0.5 rounded border flex items-center justify-center transition-colors shrink-0 ${hasConsent
+                    ? "bg-[#d4933a] border-[#d4933a]"
+                    : "bg-transparent border-[#555] group-hover:border-[#d4933a]"
+                    }`}
+                  onClick={() => setHasConsent(!hasConsent)}
+                >
+                  {hasConsent && (
+                    <svg viewBox="0 0 14 14" fill="none" className="w-3.5 h-3.5 text-white">
+                      <path
+                        d="M11.6666 3.5L5.24992 9.91667L2.33325 7"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  )}
+                </div>
+                <span className="text-[#a3a3a3] text-[12px] leading-relaxed group-hover:text-[#c2c2c2] transition-colors select-none">
+                  I consent to the collection and processing of my personal details for verification purposes. I confirm that all the information provided is accurate.
+                </span>
+              </label>
+              
+              <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-3 mt-2 flex items-start gap-2">
+                <svg className="w-4 h-4 text-[#C58434] shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+                <span className="text-[#666] text-[11px] leading-snug">
+                  <strong>Secure & Encrypted.</strong> We take your privacy seriously. Your details are securely encrypted and will only be used for our internal partnership verification. We will never share your personal information with third parties.
+                </span>
+              </div>
+            </div>
+
             {/* Submit Button */}
             <button 
               type="submit"
-              disabled={isSubmitting || uploadingImage}
+              disabled={isSubmitting || uploadingImage || !hasConsent}
               className="cursor-pointer w-full bg-[#d4933a] hover:bg-[#c28532] disabled:opacity-50 text-white font-bold tracking-wider uppercase py-3.5 rounded-xl transition-colors text-[13px] sm:text-[14px] mt-2 flex items-center justify-center gap-2"
             >
               {isSubmitting ? (
