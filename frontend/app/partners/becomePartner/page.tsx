@@ -248,54 +248,82 @@ export default function BecomePartner() {
             {/* Upload Emirate ID */}
             <div className="flex flex-col gap-1 mt-1">
               <label className="text-[#888] text-[10px] sm:text-[11px] font-semibold tracking-wider uppercase pl-1">
-                Upload Emirate ID
+                Emirate ID
               </label>
-              <div className="relative w-full border-2 border-dashed border-[#333] hover:border-[#d4933a] bg-[#1a1a1a] rounded-xl py-6 sm:py-8 flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors group overflow-hidden">
-                {formData.emirates_id_url ? (
-                  <div className="absolute inset-0 flex items-center justify-center bg-[#1a1a1a]">
-                    <img src={formData.emirates_id_url} alt="Emirate ID" className="h-full w-auto object-contain max-h-32 opacity-50" />
-                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                      <div className="bg-green-500/20 text-green-400 p-2 rounded-full mb-2 backdrop-blur-sm">
-                        <CheckCircle2 className="w-8 h-8" strokeWidth={2} />
-                      </div>
-                      <span className="text-green-400 font-medium text-sm drop-shadow-md">Uploaded Successfully</span>
+              {formData.emirates_id_url ? (
+                <div className="w-full bg-[#16221f] border border-emerald-500/20 rounded-xl p-4 flex items-center justify-between gap-4 transition-all duration-300">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center shrink-0">
+                      <CheckCircle2 className="w-5 h-5 text-emerald-400" />
                     </div>
-                    <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <span className="text-white text-sm font-medium border border-white/30 px-4 py-2 rounded-lg">Click to change</span>
+                    <div>
+                      <p className="text-emerald-400 text-sm font-semibold tracking-wide">Emirate ID Uploaded</p>
+                      <p className="text-[#888] text-[11px]">Your document is ready for submission.</p>
                     </div>
                   </div>
-                ) : uploadingImage ? (
-                  <div className="flex flex-col items-center gap-3 w-full max-w-[200px] px-4">
-                    <div className="flex items-center gap-2">
-                      <Loader2 className="w-5 h-5 text-[#d4933a] animate-spin" />
-                      <span className="text-[#d4933a] text-[10px] tracking-wider font-semibold uppercase">
-                        Uploading {uploadProgress}%
-                      </span>
-                    </div>
-                    {/* Progress Bar */}
-                    <div className="w-full h-1.5 bg-[#2a2a2a] rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-[#d4933a] rounded-full transition-all duration-300 ease-out"
-                        style={{ width: `${uploadProgress}%` }}
+                  <div className="flex items-center gap-3 shrink-0">
+                    <a 
+                      href={formData.emirates_id_url} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="group relative cursor-pointer block"
+                    >
+                      <img 
+                        src={formData.emirates_id_url} 
+                        alt="Emirate ID Thumbnail" 
+                        className="w-14 h-10 object-cover rounded-lg border border-[#333] group-hover:border-[#d4933a] transition-all" 
                       />
-                    </div>
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                        <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                      </div>
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, emirates_id_url: "" })}
+                      className="text-red-400 hover:text-red-300 text-xs font-semibold px-2.5 py-1.5 rounded-lg hover:bg-red-500/10 transition-all cursor-pointer"
+                    >
+                      Remove
+                    </button>
                   </div>
-                ) : (
-                  <>
-                    <ImagePlus className="w-6 h-6 text-[#666] group-hover:text-[#d4933a] transition-colors" strokeWidth={1.5} />
-                    <span className="text-[#666] text-[10px] tracking-wider font-semibold uppercase group-hover:text-[#d4933a] transition-colors mt-1">
-                      Upload in PNG/JPEG Format
-                    </span>
-                  </>
-                )}
-                <input 
-                  type="file" 
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
-                  accept="image/png, image/jpeg" 
-                  onChange={handleImageUpload}
-                  disabled={uploadingImage || isSubmitting}
-                />
-              </div>
+                </div>
+              ) : (
+                <div className="relative w-full border-2 border-dashed border-[#333] hover:border-[#d4933a] bg-[#1a1a1a] rounded-xl py-6 sm:py-8 flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors group overflow-hidden">
+                  {uploadingImage ? (
+                    <div className="flex flex-col items-center gap-3 w-full max-w-[200px] px-4">
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="w-5 h-5 text-[#d4933a] animate-spin" />
+                        <span className="text-[#d4933a] text-[10px] tracking-wider font-semibold uppercase">
+                          Uploading {uploadProgress}%
+                        </span>
+                      </div>
+                      {/* Progress Bar */}
+                      <div className="w-full h-1.5 bg-[#2a2a2a] rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-[#d4933a] rounded-full transition-all duration-300 ease-out"
+                          style={{ width: `${uploadProgress}%` }}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <ImagePlus className="w-6 h-6 text-[#666] group-hover:text-[#d4933a] transition-colors" strokeWidth={1.5} />
+                      <span className="text-[#666] text-[10px] tracking-wider font-semibold uppercase group-hover:text-[#d4933a] transition-colors mt-1">
+                        Upload in PNG/JPEG Format
+                      </span>
+                    </>
+                  )}
+                  <input 
+                    type="file" 
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
+                    accept="image/png, image/jpeg" 
+                    onChange={handleImageUpload}
+                    disabled={uploadingImage || isSubmitting}
+                  />
+                </div>
+              )}
             </div>
 
             {/* Consent Checkbox */}
