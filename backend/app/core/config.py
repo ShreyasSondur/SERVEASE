@@ -17,6 +17,11 @@ class Settings(BaseSettings):
     ADMIN_EMAIL: str = os.getenv("ADMIN_EMAIL", "admin@servease.com")
     ADMIN_PASSWORD: str = os.getenv("ADMIN_PASSWORD", "admin123")
     
+    # Google OAuth
+    GOOGLE_CLIENT_ID: str | None = None
+    GOOGLE_CLIENT_SECRET: str | None = None
+    SERVER_HOST: str = "http://localhost:8000"
+    
     model_config = {
         "case_sensitive": True,
         "env_file": ".env",
