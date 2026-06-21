@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { User, ShoppingCart, TrendingUp, ArrowRight } from "lucide-react";
+import Link from "next/link";
 
 export default function BecomePartner() {
     return (
@@ -62,10 +63,10 @@ export default function BecomePartner() {
 
                     {/* CTA Button */}
                     <div className="flex">
-                        <button className="bg-[#C58434] hover:bg-[#b3752c] text-white font-medium transition-colors flex items-center justify-center gap-3 sm:gap-4 group shadow-lg cursor-pointer px-8 sm:px-14 py-3 sm:py-4 text-base sm:text-xl rounded-[10px]">
+                        <Link href="/partners/becomePartner" className="bg-[#C58434] hover:bg-[#b3752c] text-white font-medium transition-colors flex items-center justify-center gap-3 sm:gap-4 group shadow-lg cursor-pointer px-8 sm:px-14 py-3 sm:py-4 text-base sm:text-xl rounded-[10px]">
                             Join as partner
                             <ArrowRight className="transition-transform group-hover:translate-x-2 w-5 h-5 sm:w-6 sm:h-6" strokeWidth={2} />
-                        </button>
+                        </Link>
                     </div>
                 </div>
             </div>

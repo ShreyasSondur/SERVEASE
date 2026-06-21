@@ -6,10 +6,11 @@ import Footer from "@/components/Footer";
 import {
   Search, MapPin, ChevronDown, ArrowRight,
   ChevronLeft, ChevronRight, BadgeCheck,
-  Calendar, Target, CheckCircle2
+  Calendar, Target, CheckCircle2, X, MessageCircle, Phone, Tag
 } from "lucide-react";
 import Link from "next/link";
 import api from "@/lib/api";
+import ImageCarousel from "@/components/ImageCarousel";
 
 export default function Deals() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -44,6 +45,12 @@ export default function Deals() {
     fetchCatalog();
   }, []);
 
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [checkedAuth, setCheckedAuth] = useState(false);
+  const [selectedServiceForContact, setSelectedServiceForContact] = useState<any>(null);
+  const [showContactModal, setShowContactModal] = useState(false);
+  const [showAuthRequiredModal, setShowAuthRequiredModal] = useState(false);
+
   const fetchDeals = async () => {
     setLoading(true);
     try {
@@ -55,7 +62,10 @@ export default function Deals() {
 
       const response = await api.get(url);
       setDeals(response.data);
-    } catch (error) {
+    } catch (error: any) {
+      if (error.response?.status === 401) {
+        setIsLoggedIn(false);
+      }
       console.error("Failed to fetch deals:", error);
     } finally {
       setLoading(false);
@@ -63,11 +73,31 @@ export default function Deals() {
   };
 
   useEffect(() => {
-    fetchDeals();
+    const token = localStorage.getItem("token");
+    setIsLoggedIn(!!token);
+    setCheckedAuth(true);
+    if (token) {
+      fetchDeals();
+    } else {
+      setLoading(false);
+    }
   }, []);
 
   const handleSearch = () => {
+    if (!localStorage.getItem("token")) {
+      setShowAuthRequiredModal(true);
+      return;
+    }
     fetchDeals();
+  };
+
+  const handleContact = (deal: any) => {
+    if (!localStorage.getItem("token")) {
+      setShowAuthRequiredModal(true);
+    } else {
+      setSelectedServiceForContact(deal.service);
+      setShowContactModal(true);
+    }
   };
 
   return (
@@ -159,24 +189,18 @@ export default function Deals() {
             deals.map((deal: any, index: number) => (
               <div key={deal.id} className="flex flex-col">
                 <div className="flex flex-col lg:flex-row gap-5 md:gap-8">
-                  {/* Image Placeholder */}
-                  <div className="relative w-full lg:w-[320px] h-[200px] md:h-[220px] bg-[#a3a3a3] rounded-2xl flex-shrink-0 overflow-hidden shadow-lg">
-                    {deal.service?.image_url ? (
-                       <img src={deal.service.image_url} alt={deal.service?.title} className="w-full h-full object-cover" />
-                    ) : (
-                       <div className="w-full h-full flex items-center justify-center text-black/50">No Image</div>
-                    )}
-                    <div className="absolute top-3 left-3 md:top-4 md:left-4 bg-white/90 backdrop-blur-sm text-[#22c55e] text-[9px] md:text-[10px] font-bold px-2.5 py-1.5 rounded-[6px] flex items-center gap-1.5 uppercase tracking-wider shadow-sm">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-[#22c55e]" strokeWidth={2.5} /> EXCLUSIVE
-                    </div>
-
-                    {/* Carousel Controls */}
-                    <button className="absolute left-2 md:left-3 top-1/2 -translate-y-1/2 w-6 h-6 md:w-7 md:h-7 bg-white/40 hover:bg-white/60 rounded flex items-center justify-center transition-colors">
-                      <ChevronLeft className="w-3 h-3 md:w-4 md:h-4 text-black/70" />
-                    </button>
-                    <button className="absolute right-2 md:right-3 top-1/2 -translate-y-1/2 w-6 h-6 md:w-7 md:h-7 bg-white/40 hover:bg-white/60 rounded flex items-center justify-center transition-colors">
-                      <ChevronRight className="w-3 h-3 md:w-4 md:h-4 text-black/70" />
-                    </button>
+                  {/* Image Carousel */}
+                  <div className="relative w-full lg:w-[320px] h-[200px] md:h-[220px] rounded-2xl flex-shrink-0 overflow-hidden shadow-lg">
+                    <ImageCarousel
+                      images={deal.service?.images}
+                      imageUrl={deal.service?.image_url}
+                      title={deal.service?.title || "Deal Image"}
+                      featuredBadge={
+                        <div className="bg-white/90 backdrop-blur-sm text-[#22c55e] text-[9px] md:text-[10px] font-bold px-2.5 py-1.5 rounded-[6px] flex items-center gap-1.5 uppercase tracking-wider shadow-sm">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-[#22c55e]" strokeWidth={2.5} /> EXCLUSIVE
+                        </div>
+                      }
+                    />
                   </div>
 
                   {/* Content */}
@@ -229,7 +253,10 @@ export default function Deals() {
                       <button className="w-full bg-white hover:bg-gray-100 text-black py-2.5 md:py-3 rounded-full font-bold text-[13px] md:text-[14px] transition-colors shadow-md cursor-pointer">
                         View More
                       </button></Link>
-                    <button className="w-full bg-[#d4933a] hover:bg-[#c28532] text-white py-2.5 md:py-3 rounded-full font-bold text-[13px] md:text-[14px] transition-colors shadow-lg cursor-pointer">
+                     <button 
+                      onClick={() => handleContact(deal)}
+                      className="w-full bg-[#d4933a] hover:bg-[#c28532] text-white py-2.5 md:py-3 rounded-full font-bold text-[13px] md:text-[14px] transition-colors shadow-lg cursor-pointer"
+                     >
                       Claim Deal
                     </button>
                   </div>
@@ -246,6 +273,127 @@ export default function Deals() {
       </main>
 
       <Footer />
+
+      {/* Guest blocking overlay */}
+      {checkedAuth && !isLoggedIn && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
+          <div className="bg-[#151515] border border-[#222] rounded-3xl p-8 max-w-md w-full text-center shadow-2xl animate-fade-in text-white">
+            <div className="w-16 h-16 rounded-full bg-[#d4933a]/10 border border-[#d4933a]/30 flex items-center justify-center mx-auto mb-6">
+              <Tag className="w-8 h-8 text-[#d4933a]" />
+            </div>
+            <h2 className="text-2xl font-semibold text-white mb-3 tracking-wide">Login Required</h2>
+            <p className="text-[#888] text-sm leading-relaxed mb-8">
+              Deals list is a premium feature. Please log in or sign up for free to check exclusive deals, discover verified services, and view contact details.
+            </p>
+            <div className="flex flex-col gap-3">
+              <Link href="/login?redirect=/deals">
+                <button className="w-full bg-[#d4933a] hover:bg-[#c28532] text-white py-3.5 rounded-xl font-bold transition-all shadow-[0_0_15px_rgba(212,147,58,0.25)] cursor-pointer">
+                  Log In
+                </button>
+              </Link>
+              <Link href="/register?redirect=/deals">
+                <button className="w-full bg-[#222] border border-[#333] hover:border-[#444] text-[#aaa] hover:text-white py-3.5 rounded-xl font-bold transition-all cursor-pointer">
+                  Register for Free
+                </button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Auth required prompt modal */}
+      {showAuthRequiredModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <div className="bg-[#151515] border border-[#222] rounded-3xl p-8 max-w-md w-full text-center shadow-2xl animate-fade-in relative text-white">
+            <button 
+              onClick={() => setShowAuthRequiredModal(false)} 
+              className="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <div className="w-16 h-16 rounded-full bg-[#d4933a]/10 border border-[#d4933a]/30 flex items-center justify-center mx-auto mb-6">
+              <Phone className="w-8 h-8 text-[#d4933a]" />
+            </div>
+            <h2 className="text-2xl font-semibold text-white mb-3 tracking-wide">Login to View Contact</h2>
+            <p className="text-[#888] text-sm leading-relaxed mb-8">
+              Please log in or register for a free account to view this partner's contact details and connect with them.
+            </p>
+            <div className="flex flex-col gap-3">
+              <Link href="/login?redirect=/deals">
+                <button className="w-full bg-[#d4933a] hover:bg-[#c28532] text-white py-3.5 rounded-xl font-bold transition-all shadow-[0_0_15px_rgba(212,147,58,0.25)] cursor-pointer">
+                  Log In
+                </button>
+              </Link>
+              <Link href="/register?redirect=/deals">
+                <button className="w-full bg-[#222] border border-[#333] hover:border-[#444] text-[#aaa] hover:text-white py-3.5 rounded-xl font-bold transition-all cursor-pointer">
+                  Register for Free
+                </button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Contact Modal */}
+      {showContactModal && selectedServiceForContact && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <div className="bg-[#151515] border border-[#222] rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl animate-fade-in relative text-white">
+            <button 
+              onClick={() => {
+                setShowContactModal(false);
+                setSelectedServiceForContact(null);
+              }} 
+              className="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            
+            <h3 className="text-xl font-bold tracking-wide text-white mb-2">
+              Contact Provider
+            </h3>
+            <p className="text-[#d4933a] text-[15px] font-semibold mb-6">
+              {selectedServiceForContact.partner?.business_name || `${selectedServiceForContact.partner?.first_name} ${selectedServiceForContact.partner?.last_name}`}
+            </p>
+            
+            <div className="flex flex-col gap-4 mb-8">
+              <div className="flex items-center gap-3 bg-[#111] p-4 rounded-xl border border-[#222]">
+                <Phone className="w-5 h-5 text-white/50" />
+                <div className="flex flex-col">
+                  <span className="text-[10px] uppercase tracking-wider text-gray-500">Phone Number</span>
+                  <span className="text-[15px] font-medium">{selectedServiceForContact.partner?.phone}</span>
+                </div>
+              </div>
+              
+              {selectedServiceForContact.partner?.email && (
+                <div className="flex items-center gap-3 bg-[#111] p-4 rounded-xl border border-[#222]">
+                  <span className="text-[15px] text-white/50 font-bold shrink-0">@</span>
+                  <div className="flex flex-col">
+                    <span className="text-[10px] uppercase tracking-wider text-gray-500">Email Address</span>
+                    <span className="text-[15px] font-medium">{selectedServiceForContact.partner?.email}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <div className="flex flex-col sm:flex-row gap-3">
+              <a 
+                href={`tel:${selectedServiceForContact.partner?.phone}`}
+                className="flex-1 bg-[#222] hover:bg-[#333] border border-[#333] hover:border-[#d4933a] text-white py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-all cursor-pointer"
+              >
+                <Phone className="w-4 h-4" /> Call Now
+              </a>
+              <a 
+                href={`https://wa.me/${selectedServiceForContact.partner?.phone?.replace(/\D/g, '')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 bg-[#25D366] hover:bg-[#20ba5a] text-white py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-[0_0_15px_rgba(37,211,102,0.25)] cursor-pointer"
+              >
+                <MessageCircle className="w-4 h-4" /> WhatsApp
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

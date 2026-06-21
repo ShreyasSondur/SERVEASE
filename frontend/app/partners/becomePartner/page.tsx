@@ -30,6 +30,19 @@ export default function BecomePartner() {
   const [cities, setCities] = useState<any[]>([]);
 
   useEffect(() => {
+    const checkRole = async () => {
+      try {
+        const res = await api.get("/auth/me");
+        const role = res.data.role;
+        if (role === "PARTNER" || role === "ADMIN") {
+          router.push("/partners/dashboard");
+        }
+      } catch (err) {
+        console.error("Failed to check auth status on mount", err);
+      }
+    };
+    checkRole();
+
     const fetchLocations = async () => {
       try {
         const [emRes, cityRes] = await Promise.all([
@@ -43,7 +56,7 @@ export default function BecomePartner() {
       }
     };
     fetchLocations();
-  }, []);
+  }, [router]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -328,13 +341,15 @@ export default function BecomePartner() {
 
             {/* Consent Checkbox */}
             <div className="flex flex-col gap-2 mt-4">
-              <label className="flex items-start gap-3 group cursor-pointer">
+              <div 
+                className="flex items-start gap-3 group cursor-pointer"
+                onClick={() => setHasConsent(!hasConsent)}
+              >
                 <div
                   className={`w-5 h-5 mt-0.5 rounded border flex items-center justify-center transition-colors shrink-0 ${hasConsent
                     ? "bg-[#d4933a] border-[#d4933a]"
                     : "bg-transparent border-[#555] group-hover:border-[#d4933a]"
                     }`}
-                  onClick={() => setHasConsent(!hasConsent)}
                 >
                   {hasConsent && (
                     <svg viewBox="0 0 14 14" fill="none" className="w-3.5 h-3.5 text-white">
@@ -351,7 +366,7 @@ export default function BecomePartner() {
                 <span className="text-[#a3a3a3] text-[12px] leading-relaxed group-hover:text-[#c2c2c2] transition-colors select-none">
                   I consent to the collection and processing of my personal details for verification purposes. I confirm that all the information provided is accurate.
                 </span>
-              </label>
+              </div>
               
               <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-3 mt-2 flex items-start gap-2">
                 <svg className="w-4 h-4 text-[#C58434] shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

@@ -13,6 +13,7 @@ export default function Navbar() {
 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -30,14 +31,19 @@ export default function Navbar() {
         api.get("/auth/me")
           .then((res) => {
             setUserRole(res.data.role);
+            setIsLoading(false);
           })
           .catch((err) => {
             console.error("Failed to fetch user role in navbar", err);
             // If token is invalid, log them out
             localStorage.removeItem("token");
             setIsLoggedIn(false);
+            setIsLoading(false);
           });
       });
+    } else {
+      setIsLoggedIn(false);
+      setIsLoading(false);
     }
 
     return () => window.removeEventListener("scroll", handleScroll);
@@ -111,7 +117,9 @@ export default function Navbar() {
 
           {/* Desktop Right Actions */}
           <div className="hidden md:flex items-center gap-6 lg:gap-8 z-10">
-            {isLoggedIn ? (
+            {isLoading ? (
+              <div className="text-white/40 text-sm font-serif">Loading...</div>
+            ) : isLoggedIn ? (
               <>
                 <div className="relative">
                   <button
@@ -143,12 +151,26 @@ export default function Navbar() {
                   )}
                 </div>
 
-                {userRole === "PARTNER" || userRole === "ADMIN" ? (
+                {userRole === "PARTNER" ? (
                   <Link
                     href="/partners/dashboard"
                     className="relative inline-flex items-center justify-center rounded-full border border-gold py-2 px-6 tracking-wide text-base md:text-[17px] lg:text-lg font-serif font-bold text-gold hover:bg-gold/10 transition-colors"
                   >
-                    Add Service
+                    Partner Dashboard
+                  </Link>
+                ) : userRole === "ADMIN" ? (
+                  <Link
+                    href="/admin/dashboard"
+                    className="relative inline-flex items-center justify-center rounded-full border border-gold py-2 px-6 tracking-wide text-base md:text-[17px] lg:text-lg font-serif font-bold text-gold hover:bg-gold/10 transition-colors"
+                  >
+                    Admin Dashboard
+                  </Link>
+                ) : userRole === "MODERATOR" ? (
+                  <Link
+                    href="/admin/dashboard"
+                    className="relative inline-flex items-center justify-center rounded-full border border-gold py-2 px-6 tracking-wide text-base md:text-[17px] lg:text-lg font-serif font-bold text-gold hover:bg-gold/10 transition-colors"
+                  >
+                    Mod Dashboard
                   </Link>
                 ) : (
                   <Link
@@ -242,15 +264,33 @@ export default function Navbar() {
 
           <div className="h-px bg-white/10 my-4" />
 
-          {isLoggedIn ? (
+          {isLoading ? (
+            <div className="text-white/40 text-sm font-serif py-2">Loading...</div>
+          ) : isLoggedIn ? (
             <>
-              {userRole === "PARTNER" || userRole === "ADMIN" ? (
+              {userRole === "PARTNER" ? (
                 <Link
                   href="/partners/dashboard"
                   onClick={() => setIsOpen(false)}
                   className="mt-4 block w-full text-center rounded-full border border-gold py-2 px-5 tracking-wide text-[17px] font-bold text-gold hover:bg-gold/10 transition-colors"
                 >
-                  Add Service
+                  Partner Dashboard
+                </Link>
+              ) : userRole === "ADMIN" ? (
+                <Link
+                  href="/admin/dashboard"
+                  onClick={() => setIsOpen(false)}
+                  className="mt-4 block w-full text-center rounded-full border border-gold py-2 px-5 tracking-wide text-[17px] font-bold text-gold hover:bg-gold/10 transition-colors"
+                >
+                  Admin Dashboard
+                </Link>
+              ) : userRole === "MODERATOR" ? (
+                <Link
+                  href="/admin/dashboard"
+                  onClick={() => setIsOpen(false)}
+                  className="mt-4 block w-full text-center rounded-full border border-gold py-2 px-5 tracking-wide text-[17px] font-bold text-gold hover:bg-gold/10 transition-colors"
+                >
+                  Mod Dashboard
                 </Link>
               ) : (
                 <Link
