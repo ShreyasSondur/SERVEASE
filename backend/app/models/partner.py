@@ -35,3 +35,7 @@ class PartnerProfile(Base):
     user = relationship("User", back_populates="partner_profile")
     services = relationship("Service", back_populates="partner")
     deals = relationship("Deal", back_populates="partner")
+
+    @property
+    def email(self) -> str:
+        return self.user.email if self.user else ""

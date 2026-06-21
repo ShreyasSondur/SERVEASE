@@ -2,39 +2,41 @@
 
 import { useState, useEffect } from "react";
 import api from "@/lib/api";
-import { 
-  Home, 
-  Users, 
-  CheckSquare, 
-  FileText, 
-  BarChart2, 
-  LogOut, 
-  Search, 
-  X, 
-  Check, 
+import Link from "next/link";
+import {
+  Home,
+  Users,
+  CheckSquare,
+  FileText,
+  BarChart2,
+  LogOut,
+  Search,
+  X,
+  Check,
   Menu,
   Filter,
   ChevronDown,
   Calendar,
   Download,
   PlusCircle,
-  ShieldAlert
+  ShieldAlert,
+  Trash2
 } from "lucide-react";
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("Dashboard");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const TABS = [
-    { name: "Dashboard", icon: Home },
-    { name: "Partners", icon: Users },
-    { name: "Verify Partner", icon: CheckSquare },
-    { name: "Suspended", icon: X },
-    { name: "Mods", icon: ShieldAlert },
-    { name: "Verify Mods", icon: CheckSquare },
-    { name: "User Logs", icon: FileText },
-    { name: "Analytics", icon: BarChart2 },
-    { name: "Add Catalog", icon: PlusCircle },
+  const ALL_TABS = [
+    { name: "Dashboard", icon: Home, roles: ["ADMIN", "MODERATOR"] },
+    { name: "Partners", icon: Users, roles: ["ADMIN", "MODERATOR"] },
+    { name: "Verify Partner", icon: CheckSquare, roles: ["ADMIN", "MODERATOR"] },
+    { name: "Suspended", icon: X, roles: ["ADMIN", "MODERATOR"] },
+    { name: "Mods", icon: ShieldAlert, roles: ["ADMIN"] },
+    { name: "Verify Mods", icon: CheckSquare, roles: ["ADMIN"] },
+    { name: "User Logs", icon: FileText, roles: ["ADMIN"] },
+    { name: "Analytics", icon: BarChart2, roles: ["ADMIN"] },
+    { name: "Add Catalog", icon: PlusCircle, roles: ["ADMIN"] },
   ];
 
   const [stats, setStats] = useState({ users: 0, partners: 0, services: 0, deals: 0 });
@@ -58,18 +60,33 @@ export default function AdminDashboard() {
 
   const [userRole, setUserRole] = useState<string | null>(null);
 
+  // Search state for partners
+  const [partnerSearch, setPartnerSearch] = useState("");
+  const [logSearch, setLogSearch] = useState("");
+  const [modSearch, setModSearch] = useState("");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get("tab");
+      if (tabParam && ALL_TABS.some(t => t.name === tabParam)) {
+        setActiveTab(tabParam);
+      }
+    }
+  }, []);
+
   useEffect(() => {
     // Auth Guard
     const checkAuth = async () => {
       try {
         const res = await api.get("/auth/me");
         if (res.data.role !== "ADMIN" && res.data.role !== "MODERATOR") {
-          window.location.href = "/login";
+          window.location.href = "/admin/login";
         }
         setUserRole(res.data.role);
         fetchData();
       } catch (err) {
-        window.location.href = "/login";
+        window.location.href = "/admin/login";
       }
     };
     checkAuth();
@@ -121,15 +138,18 @@ export default function AdminDashboard() {
 
   const handleLogout = () => {
     localStorage.removeItem("token");
-    window.location.href = "/login";
+    window.location.href = "/admin/login";
   };
 
   const verifyPartner = async (id: number) => {
-    try {
-      await api.patch(`/admin/verify/${id}`);
-      fetchData();
-    } catch (e) {
-      console.error(e);
+    if (confirm("Are you sure you want to verify this partner?")) {
+      try {
+        await api.patch(`/admin/verify/${id}`);
+        setActiveTab("Partners");
+        fetchData();
+      } catch (e) {
+        console.error(e);
+      }
     }
   };
 
@@ -154,11 +174,24 @@ export default function AdminDashboard() {
   };
 
   const verifyMod = async (id: number) => {
-    try {
-      await api.patch(`/admin/mods/verify/${id}`);
-      fetchData();
-    } catch (e) {
-      console.error(e);
+    if (confirm("Are you sure you want to verify this mod?")) {
+      try {
+        await api.patch(`/admin/mods/verify/${id}`);
+        fetchData();
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  };
+
+  const banMod = async (id: number) => {
+    if (confirm("Are you sure you want to change the ban status of this moderator?")) {
+      try {
+        await api.patch(`/admin/mods/ban/${id}`);
+        fetchData();
+      } catch (e) {
+        console.error(e);
+      }
     }
   };
 
@@ -203,12 +236,48 @@ export default function AdminDashboard() {
     }
   };
 
+  const deleteCategory = async (id: number) => {
+    if (confirm("Are you sure you want to delete this service category? All partner services and deals offering this category will be deleted permanently.")) {
+      try {
+        await api.delete(`/admin/categories/${id}`);
+        setCatalogMsg({ type: "success", text: "Global Service deleted successfully" });
+        fetchData();
+      } catch (e) {
+        setCatalogMsg({ type: "error", text: "Failed to delete service category" });
+      }
+    }
+  };
+
+  const deleteEmirate = async (id: number) => {
+    if (confirm("Are you sure you want to delete this emirate? All cities under this emirate, as well as partner services and deals in those cities, will be deleted permanently.")) {
+      try {
+        await api.delete(`/admin/emirates/${id}`);
+        setCatalogMsg({ type: "success", text: "Emirate deleted successfully" });
+        fetchData();
+      } catch (e) {
+        setCatalogMsg({ type: "error", text: "Failed to delete emirate" });
+      }
+    }
+  };
+
+  const deleteCity = async (id: number) => {
+    if (confirm("Are you sure you want to delete this city/area? All partner services and deals in this city/area will be deleted permanently.")) {
+      try {
+        await api.delete(`/admin/cities/${id}`);
+        setCatalogMsg({ type: "success", text: "City deleted successfully" });
+        fetchData();
+      } catch (e) {
+        setCatalogMsg({ type: "error", text: "Failed to delete city" });
+      }
+    }
+  };
+
   const downloadSearches = async () => {
     try {
       const res = await api.get("/admin/analytics/searches");
-      const csvContent = "data:text/csv;charset=utf-8," 
-        + "ID,Query,EmirateID,CityID,Timestamp\n"
-        + res.data.map((row: any) => `${row.id},${row.query || ""},${row.emirate_id || ""},${row.city_id || ""},${row.timestamp}`).join("\n");
+      const csvContent = "data:text/csv;charset=utf-8,"
+        + "ID,Query,Emirate,City,Timestamp\n"
+        + res.data.map((row: any) => `${row.id},${row.query || ""},${row.emirate || ""},${row.city || ""},${row.timestamp}`).join("\n");
       const encodedUri = encodeURI(csvContent);
       const link = document.createElement("a");
       link.setAttribute("href", encodedUri);
@@ -234,43 +303,74 @@ export default function AdminDashboard() {
         return (
           <div className="animate-fade-in">
             <h2 className="text-2xl font-medium mb-8 text-white tracking-wide">Dashboard Overview</h2>
-             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-               {[
-                 { title: "Total Users", count: stats.users },
-                 { title: "Total Partners", count: stats.partners },
-                 { title: "Total Services", count: stats.services },
-                 { title: "Total Deals", count: stats.deals },
-               ].map((stat, idx) => (
-                 <div key={idx} className="bg-[#151515] border border-[#222] rounded-xl p-6 shadow-md hover:border-[#333] transition-colors group">
-                   <div className="w-10 h-10 rounded-lg bg-[#d4933a]/10 flex items-center justify-center mb-4 group-hover:bg-[#d4933a]/20 transition-colors">
-                      <BarChart2 className="w-5 h-5 text-[#d4933a]" />
-                   </div>
-                   <p className="text-[#888] text-[11px] uppercase tracking-wider font-bold mb-1">
-                     {stat.title}
-                   </p>
-                   <p className="text-3xl sm:text-[34px] font-bold text-white tracking-tight">
-                     {stat.count}
-                   </p>
-                 </div>
-               ))}
-             </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+              {[
+                { title: "Total Users", count: stats.users },
+                { title: "Total Partners", count: stats.partners },
+                { title: "Total Services", count: stats.services },
+                { title: "Total Deals", count: stats.deals },
+              ].map((stat, idx) => (
+                <div key={idx} className="bg-[#151515] border border-[#222] rounded-xl p-6 shadow-md hover:border-[#333] transition-colors group">
+                  <div className="w-10 h-10 rounded-lg bg-[#d4933a]/10 flex items-center justify-center mb-4 group-hover:bg-[#d4933a]/20 transition-colors">
+                    <BarChart2 className="w-5 h-5 text-[#d4933a]" />
+                  </div>
+                  <p className="text-[#888] text-[11px] uppercase tracking-wider font-bold mb-1">
+                    {stat.title}
+                  </p>
+                  <p className="text-3xl sm:text-[34px] font-bold text-white tracking-tight">
+                    {stat.count}
+                  </p>
+                </div>
+              ))}
+            </div>
           </div>
         );
 
       case "Partners":
+        // Filter, search, and sort partners
+        const filteredAndSortedPartners = partners
+          .filter(p => p.status === "VERIFIED" || p.status === "BANNED")
+          .filter(p => {
+            const searchLower = partnerSearch.toLowerCase();
+            const name = (p.business_name || `${p.first_name} ${p.last_name}`).toLowerCase();
+            const idString = String(p.id);
+            return name.includes(searchLower) || idString.includes(searchLower);
+          })
+          .sort((a, b) => {
+            const nameA = (a.business_name || `${a.first_name} ${a.last_name}`).toLowerCase();
+            const nameB = (b.business_name || `${b.first_name} ${b.last_name}`).toLowerCase();
+            return nameA.localeCompare(nameB);
+          });
+
         return (
           <div className="animate-fade-in">
             <h2 className="text-2xl font-medium mb-8 text-white tracking-wide">Partners Management</h2>
+
+            <div className="mb-6 relative w-full sm:w-96">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#888]" />
+              <input
+                type="text"
+                placeholder="Search by Name or ID..."
+                value={partnerSearch}
+                onChange={(e) => setPartnerSearch(e.target.value)}
+                className="w-full bg-[#151515] border border-[#333] focus:border-[#d4933a] rounded-xl pl-10 pr-4 py-3 text-white outline-none text-[13px] transition-colors"
+              />
+            </div>
+
             <div className="flex flex-col gap-3">
-              {partners.map((p) => (
+              {filteredAndSortedPartners.map((p) => (
                 <div key={p.id} className="bg-[#151515] border border-[#222] rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between hover:bg-[#1a1a1a] transition-colors gap-4">
                   <div>
-                    <span className="text-white text-[15px]">{p.business_name}</span>
+                    <span className="text-[#888] text-[12px] font-mono mr-3">ID: {p.id}</span>
+                    <span className="text-white text-[15px]">{p.business_name || `${p.first_name} ${p.last_name}`}</span>
                     <span className={`ml-3 text-xs px-2 py-1 rounded text-white ${p.status === 'VERIFIED' ? 'bg-green-500/20 text-green-400' : p.status === 'BANNED' ? 'bg-red-500/20 text-red-400' : 'bg-white/10 text-gray-300'}`}>
                       {p.status}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
+                    <Link href={`/admin/dashboard/partner/${p.id}`} className="bg-[#222] hover:bg-[#333] border border-[#333] hover:border-[#d4933a] text-[#888] hover:text-[#d4933a] px-4 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all">
+                      View Details
+                    </Link>
                     {p.status === "VERIFIED" && (
                       <button onClick={() => suspendPartner(p.id)} className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-colors">
                         Suspend
@@ -294,13 +394,19 @@ export default function AdminDashboard() {
             <h2 className="text-2xl font-medium mb-8 text-white tracking-wide">Suspended Partners</h2>
             <div className="flex flex-col gap-3">
               {partners.filter(p => p.status === "SUSPENDED").map((p) => (
-                <div key={p.id} className="bg-[#151515] border border-[#222] rounded-xl p-4 flex items-center justify-between hover:bg-[#1a1a1a] transition-colors">
+                <div key={p.id} className="bg-[#151515] border border-[#222] rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between hover:bg-[#1a1a1a] transition-colors gap-4">
                   <div>
-                    <span className="text-white text-[15px]">{p.business_name}</span>
+                    <span className="text-[#888] text-[12px] font-mono mr-3">ID: {p.id}</span>
+                    <span className="text-white text-[15px]">{p.business_name || `${p.first_name} ${p.last_name}`}</span>
                   </div>
-                  <button onClick={() => verifyPartner(p.id)} className="bg-green-500 hover:bg-green-600 text-white px-4 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-colors">
-                    Un-suspend
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <Link href={`/admin/dashboard/partner/${p.id}`} className="bg-[#222] hover:bg-[#333] border border-[#333] hover:border-[#d4933a] text-[#888] hover:text-[#d4933a] px-4 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all">
+                      View Details
+                    </Link>
+                    <button onClick={() => verifyPartner(p.id)} className="bg-green-500 hover:bg-green-600 text-white px-4 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-colors">
+                      Un-suspend
+                    </button>
+                  </div>
                 </div>
               ))}
               {partners.filter(p => p.status === "SUSPENDED").length === 0 && (
@@ -316,14 +422,19 @@ export default function AdminDashboard() {
             <h2 className="text-2xl font-medium mb-8 text-white tracking-wide">Pending Partners</h2>
             <div className="flex flex-col gap-3">
               {partners.filter(p => p.status === "PENDING").map((p) => (
-                <div key={p.id} className="bg-[#151515] border border-[#222] rounded-xl p-4 flex items-center justify-between hover:bg-[#1a1a1a] transition-colors">
+                <div key={p.id} className="bg-[#151515] border border-[#222] rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between hover:bg-[#1a1a1a] transition-colors gap-4">
                   <div>
-                    <span className="text-white text-[15px]">{p.business_name}</span>
-                    <a href={p.emirates_id_url} target="_blank" className="ml-3 text-xs text-[#d4933a] hover:underline">View ID</a>
+                    <span className="text-[#888] text-[12px] font-mono mr-3">ID: {p.id}</span>
+                    <span className="text-white text-[15px]">{p.business_name || `${p.first_name} ${p.last_name}`}</span>
                   </div>
-                  <button onClick={() => verifyPartner(p.id)} className="bg-green-500 hover:bg-green-600 text-white px-4 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-colors">
-                    Approve
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <Link href={`/admin/dashboard/partner/${p.id}`} className="bg-[#222] hover:bg-[#333] border border-[#333] hover:border-[#d4933a] text-[#888] hover:text-[#d4933a] px-4 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all">
+                      View Details
+                    </Link>
+                    <button onClick={() => verifyPartner(p.id)} className="bg-green-500 hover:bg-green-600 text-white px-4 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-colors">
+                      Approve
+                    </button>
+                  </div>
                 </div>
               ))}
               {partners.filter(p => p.status === "PENDING").length === 0 && (
@@ -334,15 +445,56 @@ export default function AdminDashboard() {
         );
 
       case "Mods":
+        const filteredMods = mods.filter(m => m.is_active || m.is_banned).filter(m => {
+          const searchLower = modSearch.toLowerCase();
+          const name = (m.full_name || "").toLowerCase();
+          const email = (m.email || "").toLowerCase();
+          const idString = String(m.id);
+          return name.includes(searchLower) || email.includes(searchLower) || idString.includes(searchLower);
+        });
+
         return (
           <div className="animate-fade-in">
-            <h2 className="text-2xl font-medium mb-8 text-white tracking-wide">Active Moderators</h2>
+            <h2 className="text-2xl font-medium mb-8 text-white tracking-wide">Current & Banned Moderators</h2>
+            
+            <div className="mb-6 relative w-full sm:w-96">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#888]" />
+              <input 
+                type="text" 
+                placeholder="Search by Name, Email, or ID..." 
+                value={modSearch}
+                onChange={(e) => setModSearch(e.target.value)}
+                className="w-full bg-[#151515] border border-[#333] focus:border-[#d4933a] rounded-xl pl-10 pr-4 py-3 text-white outline-none text-[13px] transition-colors"
+              />
+            </div>
+
             <div className="flex flex-col gap-3">
-              {mods.filter(m => m.is_active).map((m) => (
-                <div key={m.id} className="bg-[#151515] border border-[#222] rounded-xl p-4 flex items-center justify-between hover:bg-[#1a1a1a] transition-colors">
-                  <span className="text-white text-[15px]">{m.email}</span>
-                </div>
-              ))}
+              {filteredMods.map((m) => {
+                let statusBadge = "";
+                if (m.is_banned) {
+                  statusBadge = <span className="ml-3 text-xs px-2 py-1 rounded bg-red-500/20 text-red-400">Banned</span>;
+                } else {
+                  statusBadge = <span className="ml-3 text-xs px-2 py-1 rounded bg-green-500/20 text-green-400">Active</span>;
+                }
+
+                return (
+                  <div key={m.id} className="bg-[#151515] border border-[#222] rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between hover:bg-[#1a1a1a] transition-colors gap-4">
+                    <div>
+                      <span className="text-[#888] text-[12px] font-mono mr-3">ID: {m.id}</span>
+                      <span className="text-white text-[15px]">{m.full_name || m.email} <span className="text-gray-500 text-xs ml-2">({m.email})</span></span>
+                      {statusBadge}
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <button onClick={() => banMod(m.id)} className={`${m.is_banned ? 'bg-gray-600 hover:bg-gray-700' : 'bg-red-500 hover:bg-red-600'} text-white px-4 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-colors`}>
+                        {m.is_banned ? 'Unban' : 'Ban'}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+              {filteredMods.length === 0 && (
+                <div className="text-gray-500 text-sm">No moderators found.</div>
+              )}
             </div>
           </div>
         );
@@ -350,19 +502,26 @@ export default function AdminDashboard() {
       case "Verify Mods":
         return (
           <div className="animate-fade-in">
-            <h2 className="text-2xl font-medium mb-8 text-white tracking-wide">Pending Moderators (Admin Only)</h2>
+            <h2 className="text-2xl font-medium mb-8 text-white tracking-wide">Pending Moderators</h2>
             <div className="flex flex-col gap-3">
-              {mods.filter(m => !m.is_active).map((m) => (
+              {mods.filter(m => !m.is_active && !m.is_banned).map((m) => (
                 <div key={m.id} className="bg-[#151515] border border-[#222] rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-0 hover:bg-[#1a1a1a] transition-colors">
-                  <span className="text-white text-[15px]">{m.email}</span>
+                  <div>
+                    <span className="text-[#888] text-[12px] font-mono mr-3">ID: {m.id}</span>
+                    <span className="text-white text-[15px]">{m.full_name || m.email} <span className="text-gray-500 text-xs ml-2">({m.email})</span></span>
+                    <span className="ml-3 text-xs px-2 py-1 rounded bg-yellow-500/20 text-yellow-400">Pending</span>
+                  </div>
                   <div className="flex items-center gap-3">
-                    <button onClick={() => verifyMod(m.id)} className="bg-green-500 hover:bg-green-600 text-white p-1.5 rounded-lg transition-colors">
-                      <Check className="w-4 h-4" strokeWidth={3} />
+                    <button onClick={() => verifyMod(m.id)} className="bg-green-500 hover:bg-green-600 text-white px-4 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-colors flex items-center gap-2">
+                      <Check className="w-4 h-4" strokeWidth={3} /> Approve
+                    </button>
+                    <button onClick={() => banMod(m.id)} className="bg-red-500 hover:bg-red-600 text-white px-4 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-colors">
+                      Reject / Ban
                     </button>
                   </div>
                 </div>
               ))}
-              {mods.filter(m => !m.is_active).length === 0 && (
+              {mods.filter(m => !m.is_active && !m.is_banned).length === 0 && (
                 <div className="text-gray-500 text-sm">No pending moderators.</div>
               )}
             </div>
@@ -370,21 +529,80 @@ export default function AdminDashboard() {
         );
 
       case "User Logs":
+        const filteredLogs = logs.filter(l => {
+          const searchLower = logSearch.toLowerCase();
+          const action = (l.action || "").toLowerCase();
+          const desc = (l.description || "").toLowerCase();
+          const actor = (l.actor_name || "").toLowerCase();
+          const partnerName = (l.target_partner_name || "").toLowerCase();
+          const actorId = String(l.actor_id || "").toLowerCase();
+          const partnerId = String(l.target_partner_id || "").toLowerCase();
+          const userId = String(l.user_id || "").toLowerCase();
+
+          return action.includes(searchLower) ||
+            desc.includes(searchLower) ||
+            actor.includes(searchLower) ||
+            partnerName.includes(searchLower) ||
+            actorId.includes(searchLower) ||
+            partnerId.includes(searchLower) ||
+            userId.includes(searchLower);
+        });
+
         return (
           <div className="animate-fade-in">
             <h2 className="text-2xl font-medium mb-8 text-white tracking-wide">Activity Logs</h2>
+
+            {/* Search Input */}
+            <div className="mb-6 relative w-full sm:w-96">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#888]" />
+              <input
+                type="text"
+                placeholder="Search by Action, Mod, Partner, ID..."
+                value={logSearch}
+                onChange={(e) => setLogSearch(e.target.value)}
+                className="w-full bg-[#151515] border border-[#333] focus:border-[#d4933a] rounded-xl pl-10 pr-4 py-3 text-white outline-none text-[13px] transition-colors"
+              />
+            </div>
+
             <div className="flex flex-col gap-3">
-              {logs.map((l) => (
-                <div key={l.id} className="bg-[#151515] border border-[#222] rounded-xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-0 hover:bg-[#1a1a1a] transition-colors shadow-sm">
-                  <span className="text-[#e5e5e5] text-[14px] sm:text-[15px] font-light">
-                    <span className="font-bold text-[#d4933a] mr-2">[{l.action}]</span> 
-                    {l.description} (User: {l.user_id})
-                  </span>
-                  <span className="text-[#888] text-[11px] sm:text-[12px] uppercase tracking-wider">
-                    {new Date(l.timestamp).toLocaleString()}
-                  </span>
-                </div>
-              ))}
+              {filteredLogs.map((l) => {
+                let actorDisplay = "";
+                if (l.actor_role === "ADMIN") {
+                  actorDisplay = "Admin";
+                } else if (l.actor_role === "MODERATOR") {
+                  actorDisplay = `Mod: ${l.actor_name} (ID: ${l.actor_id})`;
+                } else if (l.actor_name && l.actor_name !== "System") {
+                  actorDisplay = `${l.actor_name} (ID: ${l.actor_id})`;
+                } else {
+                  actorDisplay = l.user_id ? `User (ID: ${l.user_id})` : "System";
+                }
+
+                return (
+                  <div key={l.id} className="bg-[#151515] border border-[#222] rounded-xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-0 hover:bg-[#1a1a1a] transition-colors shadow-sm">
+                    <div className="flex flex-col gap-1.5 text-[#e5e5e5] text-[14px] sm:text-[15px] font-light font-sans">
+                      <div>
+                        <span className="font-bold text-[#d4933a] mr-2">[{l.action}]</span>
+                        {l.description}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-x-4 text-xs text-gray-500 font-sans">
+                        <span>by <strong className="text-gray-400 font-semibold">{actorDisplay}</strong></span>
+                        {l.target_partner_name && (
+                          <>
+                            <span className="w-1.5 h-1.5 rounded-full bg-white/10" />
+                            <span>on Partner: <strong className="text-[#d4933a]/80 font-semibold">{l.target_partner_name} (ID: {l.target_partner_id})</strong></span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    <span className="text-[#888] text-[11px] sm:text-[12px] uppercase tracking-wider shrink-0 pl-0 sm:pl-4">
+                      {new Date(l.timestamp).toLocaleString()}
+                    </span>
+                  </div>
+                );
+              })}
+              {filteredLogs.length === 0 && (
+                <div className="text-gray-500 text-sm pl-2">No matching logs found.</div>
+              )}
             </div>
           </div>
         );
@@ -394,31 +612,31 @@ export default function AdminDashboard() {
         return (
           <div className="animate-fade-in space-y-6">
             <h2 className="text-2xl font-medium text-white tracking-wide mb-6">Analytics</h2>
-            
+
             {/* Filter Section */}
             <div className="bg-[#1f2022] border border-[#2e2f31] rounded-xl p-6">
               <div className="flex items-center gap-3 mb-6">
-                 <Filter className="text-[#3b82f6] w-6 h-6" strokeWidth={2} /> 
-                 <h3 className="text-[#d4933a] text-xl font-medium">Filter</h3>
+                <Filter className="text-[#3b82f6] w-6 h-6" strokeWidth={2} />
+                <h3 className="text-[#d4933a] text-xl font-medium">Filter</h3>
               </div>
               <div className="flex flex-col sm:flex-row items-end gap-6">
                 <div className="flex-1 w-full">
-                   <label className="text-[#888] text-[10px] uppercase font-bold tracking-widest mb-2 block">Time Period</label>
-                   <select className="w-full bg-[#111] border border-[#333] rounded-lg py-3 px-4 text-white outline-none focus:border-[#d4933a] appearance-none">
-                     <option>This Week</option>
-                     <option>This Month</option>
-                     <option>This Year</option>
-                     <option>All Time</option>
-                   </select>
+                  <label className="text-[#888] text-[10px] uppercase font-bold tracking-widest mb-2 block">Time Period</label>
+                  <select className="w-full bg-[#111] border border-[#333] rounded-lg py-3 px-4 text-white outline-none focus:border-[#d4933a] appearance-none">
+                    <option>This Week</option>
+                    <option>This Month</option>
+                    <option>This Year</option>
+                    <option>All Time</option>
+                  </select>
                 </div>
                 <div className="flex-1 w-full">
-                   <label className="text-[#888] text-[10px] uppercase font-bold tracking-widest mb-2 block">EMIRATES</label>
-                   <select className="w-full bg-[#111] border border-[#333] rounded-lg py-3 px-4 text-white outline-none focus:border-[#d4933a] appearance-none">
-                     <option>All</option>
-                     <option>Dubai</option>
-                     <option>Abu Dhabi</option>
-                     <option>Sharjah</option>
-                   </select>
+                  <label className="text-[#888] text-[10px] uppercase font-bold tracking-widest mb-2 block">EMIRATES</label>
+                  <select className="w-full bg-[#111] border border-[#333] rounded-lg py-3 px-4 text-white outline-none focus:border-[#d4933a] appearance-none">
+                    <option>All</option>
+                    <option>Dubai</option>
+                    <option>Abu Dhabi</option>
+                    <option>Sharjah</option>
+                  </select>
                 </div>
                 <button className="bg-[#d4933a] hover:bg-[#c28532] text-white py-3 px-8 rounded-lg font-bold transition-all h-[46px] whitespace-nowrap">
                   Apply Filter
@@ -430,7 +648,7 @@ export default function AdminDashboard() {
             <div className="bg-[#1f2022] border border-[#2e2f31] rounded-xl p-8 pb-12 mt-6">
               <h3 className="text-[#d4933a] text-xl font-medium mb-1">Search Per Service</h3>
               <p className="text-[#888] text-xs mb-12">Total Number of Searches for each services</p>
-              
+
               <div className="relative h-[300px] w-full mt-8">
                 {/* Y-axis lines */}
                 <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
@@ -441,7 +659,7 @@ export default function AdminDashboard() {
                     </div>
                   ))}
                 </div>
-                
+
                 {/* Bars container */}
                 <div className="absolute inset-0 pl-16 flex items-end justify-around pb-[1px] pr-4">
                   {searchAnalytics.length === 0 ? (
@@ -460,7 +678,7 @@ export default function AdminDashboard() {
                       return (
                         <div key={idx} className="relative flex flex-col items-center w-20 group">
                           <span className="absolute -top-6 text-white text-xs">{item.count}</span>
-                          <div 
+                          <div
                             className="w-full bg-[#d4933a] rounded-t-sm transition-all duration-1000 ease-out"
                             style={{ height: `${heightPct}%` }}
                           ></div>
@@ -479,7 +697,7 @@ export default function AdminDashboard() {
             <div className="bg-[#1f2022] border border-[#2e2f31] rounded-xl p-8 mt-6">
               <h3 className="text-white text-lg font-medium mb-1">Download Search Data</h3>
               <p className="text-[#888] text-xs mb-8">Download user search data based on selected filters</p>
-              
+
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                 {[
                   { title: "Today", desc: "Download today's search data" },
@@ -489,17 +707,17 @@ export default function AdminDashboard() {
                   { title: "All time", desc: "Download all time search data" }
                 ].map((card, i) => (
                   <div key={i} className="border border-[#333] rounded-xl p-5 flex flex-col items-center text-center bg-[#18191a]">
-                      <div className="w-10 h-10 rounded-full border border-[#d4933a]/50 text-[#d4933a] flex items-center justify-center mb-4 bg-[#d4933a]/10">
-                        <Calendar className="w-4 h-4" strokeWidth={2} />
-                      </div>
-                      <h4 className="text-white text-sm font-medium mb-1">{card.title}</h4>
-                      <p className="text-[#888] text-[10px] mb-5 h-8 leading-tight">{card.desc}</p>
-                      <button 
-                        onClick={downloadSearches}
-                        className="w-full bg-[#222] border border-[#333] hover:border-[#d4933a] hover:text-[#d4933a] text-[#888] py-2 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all"
-                      >
-                        Download <Download className="w-3.5 h-3.5" />
-                      </button>
+                    <div className="w-10 h-10 rounded-full border border-[#d4933a]/50 text-[#d4933a] flex items-center justify-center mb-4 bg-[#d4933a]/10">
+                      <Calendar className="w-4 h-4" strokeWidth={2} />
+                    </div>
+                    <h4 className="text-white text-sm font-medium mb-1">{card.title}</h4>
+                    <p className="text-[#888] text-[10px] mb-5 h-8 leading-tight">{card.desc}</p>
+                    <button
+                      onClick={downloadSearches}
+                      className="w-full bg-[#222] border border-[#333] hover:border-[#d4933a] hover:text-[#d4933a] text-[#888] py-2 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all"
+                    >
+                      Download <Download className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 ))}
               </div>
@@ -513,18 +731,17 @@ export default function AdminDashboard() {
             <div className="flex items-center justify-between mb-8">
               <h2 className="text-2xl font-medium text-white tracking-wide">Catalog Management</h2>
             </div>
-            
+
             {catalogMsg.text && (
-              <div className={`mb-6 p-4 rounded-xl border flex items-center gap-3 ${
-                catalogMsg.type === 'success' 
-                  ? 'bg-green-500/10 border-green-500/30 text-green-400' 
+              <div className={`mb-6 p-4 rounded-xl border flex items-center gap-3 ${catalogMsg.type === 'success'
+                  ? 'bg-green-500/10 border-green-500/30 text-green-400'
                   : 'bg-red-500/10 border-red-500/30 text-red-400'
-              }`}>
+                }`}>
                 {catalogMsg.type === 'success' ? <Check className="w-5 h-5" /> : <X className="w-5 h-5" />}
                 <span className="font-medium text-[15px]">{catalogMsg.text}</span>
               </div>
             )}
-            
+
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* Column 1: Global Services */}
               <div className="space-y-6">
@@ -532,7 +749,7 @@ export default function AdminDashboard() {
                 <div className="bg-[#151515] border border-[#222] rounded-2xl p-6 shadow-lg">
                   <h3 className="text-[#d4933a] text-lg font-medium mb-1">Global Services</h3>
                   <p className="text-[#888] text-xs mb-6">Create the top-level services partners can offer.</p>
-                  
+
                   <form onSubmit={addCategory} className="flex flex-col gap-4">
                     <div>
                       <label className="text-[#888] text-[10px] uppercase font-bold tracking-widest mb-1.5 block pl-1">Service Name</label>
@@ -553,9 +770,18 @@ export default function AdminDashboard() {
                   <h3 className="text-white text-[15px] font-medium mb-4">Existing Services ({catalogServices.length})</h3>
                   <div className="flex flex-col gap-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                     {catalogServices.map(s => (
-                      <div key={s.id} className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-3 flex flex-col gap-1">
-                        <span className="text-white text-sm font-medium">{s.name}</span>
-                        {s.description && <span className="text-[#888] text-[11px]">{s.description}</span>}
+                      <div key={s.id} className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-3 flex items-center justify-between gap-4">
+                        <div className="flex flex-col gap-1">
+                          <span className="text-white text-sm font-medium">{s.name}</span>
+                          {s.description && <span className="text-[#888] text-[11px]">{s.description}</span>}
+                        </div>
+                        <button
+                          onClick={() => deleteCategory(s.id)}
+                          className="text-[#888] hover:text-[#ff4d4d] hover:bg-[#252525] p-1.5 rounded-lg transition-colors shrink-0"
+                          title="Delete Service Category"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     ))}
                     {catalogServices.length === 0 && <span className="text-[#666] text-sm">No services created yet.</span>}
@@ -569,7 +795,7 @@ export default function AdminDashboard() {
                 <div className="bg-[#151515] border border-[#222] rounded-2xl p-6 shadow-lg">
                   <h3 className="text-[#d4933a] text-lg font-medium mb-1">Emirates</h3>
                   <p className="text-[#888] text-xs mb-6">Define the major regions of operation.</p>
-                  
+
                   <form onSubmit={addEmirate} className="flex flex-col sm:flex-row gap-4 items-end">
                     <div className="w-full">
                       <label className="text-[#888] text-[10px] uppercase font-bold tracking-widest mb-1.5 block pl-1">Emirate Name</label>
@@ -585,7 +811,7 @@ export default function AdminDashboard() {
                 <div className="bg-[#151515] border border-[#222] rounded-2xl p-6 shadow-lg">
                   <h3 className="text-[#d4933a] text-lg font-medium mb-1">Cities / Areas</h3>
                   <p className="text-[#888] text-xs mb-6">Add specific cities or areas within an Emirate.</p>
-                  
+
                   <form onSubmit={addCity} className="flex flex-col gap-4">
                     <div className="flex flex-col sm:flex-row gap-4">
                       <div className="w-full sm:w-1/2">
@@ -612,13 +838,27 @@ export default function AdminDashboard() {
                   <div className="flex flex-col gap-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                     {catalogEmirates.map(emirate => (
                       <div key={emirate.id} className="border border-[#2a2a2a] rounded-xl overflow-hidden">
-                        <div className="bg-[#1a1a1a] px-4 py-3 border-b border-[#2a2a2a]">
+                        <div className="bg-[#1a1a1a] px-4 py-3 border-b border-[#2a2a2a] flex items-center justify-between">
                           <span className="text-[#d4933a] font-bold text-sm tracking-wide">{emirate.name}</span>
+                          <button
+                            onClick={() => deleteEmirate(emirate.id)}
+                            className="text-[#888] hover:text-[#ff4d4d] hover:bg-[#252525] p-1.5 rounded-lg transition-colors"
+                            title="Delete Emirate"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                         </div>
                         <div className="bg-[#111] p-3 flex flex-wrap gap-2">
                           {catalogCities.filter(c => c.emirate_id === emirate.id).map(city => (
-                            <span key={city.id} className="bg-[#222] text-[#e5e5e5] border border-[#333] text-[11px] px-3 py-1.5 rounded-lg">
-                              {city.name}
+                            <span key={city.id} className="bg-[#222] text-[#e5e5e5] border border-[#333] text-[11px] pl-3 pr-2 py-1.5 rounded-lg flex items-center gap-1.5">
+                              <span>{city.name}</span>
+                              <button
+                                onClick={() => deleteCity(city.id)}
+                                className="text-gray-500 hover:text-[#ff4d4d] hover:bg-[#333] p-0.5 rounded transition-colors"
+                                title="Delete City"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
                             </span>
                           ))}
                           {catalogCities.filter(c => c.emirate_id === emirate.id).length === 0 && (
@@ -647,13 +887,13 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-[#0b0a0a] flex font-sans">
-      
+
       {/* Mobile Header (Visible only on small screens) */}
       <div className="lg:hidden fixed top-0 left-0 w-full bg-[#0f0f0f] border-b border-[#222] flex items-center justify-between p-4 z-50">
         <h1 className="text-xl font-bold italic tracking-wide">
           <span className="text-white">SERV</span><span className="text-[#d4933a]">EASE</span>
         </h1>
-        <button 
+        <button
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           className="text-white p-2 bg-[#222] rounded-lg"
         >
@@ -663,7 +903,7 @@ export default function AdminDashboard() {
 
       {/* Sidebar Overlay for Mobile */}
       {isMobileMenuOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/60 z-40 lg:hidden"
           onClick={() => setIsMobileMenuOpen(false)}
         />
@@ -683,12 +923,13 @@ export default function AdminDashboard() {
         </div>
 
         <div className="p-8 lg:hidden mt-12 border-b border-[#222] mb-4">
-           <span className="text-[#888] text-[10px] uppercase tracking-widest font-bold">Menu</span>
+          <span className="text-[#888] text-[10px] uppercase tracking-widest font-bold">Menu</span>
         </div>
 
         {/* Navigation */}
         <nav className="flex-grow px-4 flex flex-col gap-1 overflow-y-auto pb-6">
-          {TABS.map((tab) => {
+          {ALL_TABS.filter(tab => userRole && tab.roles.includes(userRole)).map((tab) => {
+            const Icon = tab.icon;
             const isActive = activeTab === tab.name;
             return (
               <button
@@ -697,16 +938,14 @@ export default function AdminDashboard() {
                   setActiveTab(tab.name);
                   setIsMobileMenuOpen(false);
                 }}
-                className={`
-                  flex items-center gap-3.5 px-4 py-3.5 rounded-xl transition-all duration-200 text-[13px] font-medium tracking-wide
+                className={`w-full flex items-center gap-4 px-6 py-4 transition-all duration-200 border-l-[3px]
                   ${isActive 
-                    ? 'bg-[#222] text-white border border-[#333]' 
-                    : 'text-[#888] hover:bg-[#151515] hover:text-[#d4d2cd] border border-transparent'
-                  }
-                `}
+                    ? "bg-[#d4933a]/10 text-[#d4933a] border-[#d4933a] font-medium" 
+                    : "text-[#888] border-transparent hover:bg-[#1a1a1a] hover:text-white"
+                  }`}
               >
-                <tab.icon className={`w-4 h-4 ${isActive ? 'text-[#d4933a]' : ''}`} strokeWidth={isActive ? 2 : 1.5} />
-                {tab.name}
+                <Icon className="w-[18px] h-[18px]" />
+                <span className="text-[14px] tracking-wide">{tab.name}</span>
               </button>
             );
           })}
@@ -714,7 +953,7 @@ export default function AdminDashboard() {
 
         {/* Logout */}
         <div className="p-4 mt-auto border-t border-[#222]">
-          <button 
+          <button
             onClick={handleLogout}
             className="flex items-center justify-center gap-2 w-full bg-[#151515] hover:bg-red-500/10 text-[#888] hover:text-red-400 border border-[#222] hover:border-red-500/30 py-3.5 rounded-xl transition-all text-[13px] font-medium cursor-pointer"
           >

@@ -29,6 +29,7 @@ class PartnerProfileInDBBase(PartnerProfileBase):
     deals_limit: int
     suspended_until: Optional[datetime] = None
     created_at: datetime
+    email: Optional[str] = None
 
     class Config:
         from_attributes = True

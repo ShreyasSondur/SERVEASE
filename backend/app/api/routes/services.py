@@ -1,7 +1,7 @@
-from typing import List
+from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from app.api.dependencies import get_db, get_current_active_partner, get_current_user
+from app.api.dependencies import get_db, get_current_active_partner, get_current_user_optional
 from app.models.user import User, UserRole
 from app.models.partner import PartnerProfile, PartnerStatus
 from app.models.business import Service
@@ -10,14 +10,26 @@ from app.schemas.business import Service as ServiceSchema, ServiceCreate, Servic
 router = APIRouter()
 
 @router.get("/", response_model=List[ServiceSchema])
-def list_services(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+def list_services(
+    skip: int = 0, 
+    limit: int = 100, 
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional)
+):
     # Join with PartnerProfile to ensure only verified partners' services are shown
     services = db.query(Service).join(PartnerProfile).filter(
         Service.is_active == True,
         Service.is_deleted == False,
         PartnerProfile.status == PartnerStatus.VERIFIED
     ).offset(skip).limit(limit).all()
-    return services
+    
+    results = [ServiceSchema.model_validate(s) for s in services]
+    if not current_user:
+        for s in results:
+            if s.partner:
+                s.partner.phone = "HIDDEN_LOGIN_REQUIRED"
+                s.partner.email = "HIDDEN_LOGIN_REQUIRED"
+    return results
 
 @router.post("/", response_model=ServiceSchema)
 def create_service(
@@ -39,7 +51,9 @@ def create_service(
         city_id=service_in.city_id,
         title=service_in.title,
         description=service_in.description,
-        image_url=service_in.image_url,
+        images=service_in.images,
+        emergency_service=service_in.emergency_service,
+        provider_type=service_in.provider_type,
     )
     db.add(service)
     db.commit()
@@ -90,3 +104,20 @@ def delete_service(
     service.is_deleted = True
     db.commit()
     return {"detail": "Service deleted successfully."}
+
+@router.get("/{service_id}", response_model=ServiceSchema)
+def get_service(
+    service_id: int, 
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional)
+):
+    service = db.query(Service).filter(Service.id == service_id, Service.is_deleted == False).first()
+    if not service:
+        raise HTTPException(status_code=404, detail="Service not found.")
+        
+    result = ServiceSchema.model_validate(service)
+    if not current_user:
+        if result.partner:
+            result.partner.phone = "HIDDEN_LOGIN_REQUIRED"
+            result.partner.email = "HIDDEN_LOGIN_REQUIRED"
+    return result

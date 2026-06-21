@@ -5,8 +5,8 @@ from sqlalchemy.orm import Session
 from app.api.dependencies import get_db, get_current_active_admin, get_current_active_mod
 from app.models.user import User, UserRole
 from app.models.partner import PartnerProfile, PartnerStatus
-from app.models.catalog import Category, City
-from app.models.business import ActivityLog
+from app.models.catalog import Category, City, Emirate
+from app.models.business import ActivityLog, Service, Deal
 from app.models.analytics import SearchHistory
 from app.schemas.partner import PartnerProfile as PartnerProfileSchema
 from app.schemas.catalog import CategoryCreate, Category as CategorySchema, CityCreate, City as CitySchema, EmirateCreate
@@ -39,6 +39,13 @@ def list_partners(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)
     partners = db.query(PartnerProfile).offset(skip).limit(limit).all()
     return partners
 
+@router.get("/partners/{partner_id}", response_model=PartnerProfileSchema)
+def get_partner(partner_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_active_mod)):
+    partner = db.query(PartnerProfile).filter(PartnerProfile.id == partner_id).first()
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner not found")
+    return partner
+
 @router.patch("/verify/{partner_id}", response_model=PartnerProfileSchema)
 def verify_partner(partner_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_active_mod)):
     partner = db.query(PartnerProfile).filter(PartnerProfile.id == partner_id).first()
@@ -47,6 +54,12 @@ def verify_partner(partner_id: int, db: Session = Depends(get_db), current_user:
         
     partner.status = PartnerStatus.VERIFIED
     partner.is_verified = True
+    
+    # Update the user's role to PARTNER so they get dashboard access
+    user = db.query(User).filter(User.id == partner.user_id).first()
+    if user and user.role == UserRole.USER:
+        user.role = UserRole.PARTNER
+
     db.commit()
     db.refresh(partner)
     
@@ -112,7 +125,7 @@ def ban_partner(partner_id: int, db: Session = Depends(get_db), current_user: Us
 @router.get("/mods")
 def list_mods(db: Session = Depends(get_db), current_admin: User = Depends(get_current_active_admin)):
     mods = db.query(User).filter(User.role == UserRole.MODERATOR).all()
-    return [{"id": m.id, "email": m.email, "is_active": m.is_active} for m in mods]
+    return [{"id": m.id, "email": m.email, "full_name": m.full_name, "is_active": m.is_active, "is_banned": m.is_banned} for m in mods]
 
 @router.patch("/mods/verify/{mod_id}")
 def verify_mod(mod_id: int, db: Session = Depends(get_db), current_admin: User = Depends(get_current_active_admin)):
@@ -120,6 +133,7 @@ def verify_mod(mod_id: int, db: Session = Depends(get_db), current_admin: User =
     if not mod:
         raise HTTPException(status_code=404, detail="Moderator not found")
     mod.is_active = True
+    mod.is_banned = False
     db.commit()
     
     log = ActivityLog(user_id=current_admin.id, action="VERIFY_MOD", description=f"Verified moderator {mod_id}")
@@ -127,6 +141,33 @@ def verify_mod(mod_id: int, db: Session = Depends(get_db), current_admin: User =
     db.commit()
     
     return {"message": "Moderator verified successfully"}
+
+@router.patch("/mods/ban/{mod_id}")
+def ban_mod(mod_id: int, db: Session = Depends(get_db), current_admin: User = Depends(get_current_active_admin)):
+    mod = db.query(User).filter(User.id == mod_id, User.role == UserRole.MODERATOR).first()
+    if not mod:
+        raise HTTPException(status_code=404, detail="Moderator not found")
+        
+    # Toggle ban status
+    mod.is_banned = not mod.is_banned
+    if mod.is_banned:
+        mod.is_active = False # Disable login if banned
+        action = "BAN_MOD"
+        desc = f"Banned moderator {mod_id}"
+    else:
+        # Unbanning doesn't automatically verify, but let's make them inactive so they need verify, or active?
+        # Actually if they were active before ban, maybe active. Let's set active.
+        mod.is_active = True
+        action = "UNBAN_MOD"
+        desc = f"Unbanned moderator {mod_id}"
+        
+    db.commit()
+    
+    log = ActivityLog(user_id=current_admin.id, action=action, description=desc)
+    db.add(log)
+    db.commit()
+    
+    return {"message": desc}
 
 # -----------------
 # Catalog Management (Admin Only)
@@ -156,6 +197,107 @@ def add_city(city: CityCreate, db: Session = Depends(get_db), current_admin: Use
     db.refresh(db_city)
     return db_city
 
+@router.delete("/categories/{category_id}", response_model=dict)
+def delete_category(
+    category_id: int,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_active_admin)
+):
+    category = db.query(Category).filter(Category.id == category_id).first()
+    if not category:
+        raise HTTPException(status_code=404, detail="Category not found")
+    
+    # Delete associated deals
+    db.query(Deal).filter(Deal.category_id == category_id).delete(synchronize_session=False)
+        
+    # Delete associated services
+    db.query(Service).filter(Service.category_id == category_id).delete(synchronize_session=False)
+    
+    # Nullify SearchHistory category references
+    db.query(SearchHistory).filter(SearchHistory.category_id == category_id).update({SearchHistory.category_id: None}, synchronize_session=False)
+    
+    # Delete the category
+    db.delete(category)
+    db.commit()
+    
+    # Log action
+    log = ActivityLog(user_id=current_admin.id, action="DELETE_CATEGORY", description=f"Deleted category '{category.name}' (ID: {category_id})")
+    db.add(log)
+    db.commit()
+    
+    return {"detail": "Category deleted successfully"}
+
+@router.delete("/emirates/{emirate_id}", response_model=dict)
+def delete_emirate(
+    emirate_id: int,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_active_admin)
+):
+    emirate = db.query(Emirate).filter(Emirate.id == emirate_id).first()
+    if not emirate:
+        raise HTTPException(status_code=404, detail="Emirate not found")
+        
+    # Cascade: Get all cities under this emirate
+    cities = db.query(City).filter(City.emirate_id == emirate_id).all()
+    city_ids = [c.id for c in cities]
+    
+    # Delete associated deals
+    if city_ids:
+        db.query(Deal).filter(Deal.city_id.in_(city_ids)).delete(synchronize_session=False)
+        
+    # Delete associated services
+    if city_ids:
+        db.query(Service).filter(Service.city_id.in_(city_ids)).delete(synchronize_session=False)
+        
+    # Nullify SearchHistory emirate and city references
+    db.query(SearchHistory).filter(SearchHistory.emirate_id == emirate_id).update({SearchHistory.emirate_id: None}, synchronize_session=False)
+    if city_ids:
+        db.query(SearchHistory).filter(SearchHistory.city_id.in_(city_ids)).update({SearchHistory.city_id: None}, synchronize_session=False)
+        
+    # Delete cities under this emirate
+    db.query(City).filter(City.emirate_id == emirate_id).delete(synchronize_session=False)
+    
+    # Delete the emirate
+    db.delete(emirate)
+    db.commit()
+    
+    # Log action
+    log = ActivityLog(user_id=current_admin.id, action="DELETE_EMIRATE", description=f"Deleted emirate '{emirate.name}' (ID: {emirate_id})")
+    db.add(log)
+    db.commit()
+    
+    return {"detail": "Emirate deleted successfully"}
+
+@router.delete("/cities/{city_id}", response_model=dict)
+def delete_city(
+    city_id: int,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_active_admin)
+):
+    city = db.query(City).filter(City.id == city_id).first()
+    if not city:
+        raise HTTPException(status_code=404, detail="City not found")
+        
+    # Delete associated deals
+    db.query(Deal).filter(Deal.city_id == city_id).delete(synchronize_session=False)
+        
+    # Delete associated services
+    db.query(Service).filter(Service.city_id == city_id).delete(synchronize_session=False)
+    
+    # Nullify SearchHistory city references
+    db.query(SearchHistory).filter(SearchHistory.city_id == city_id).update({SearchHistory.city_id: None}, synchronize_session=False)
+    
+    # Delete the city
+    db.delete(city)
+    db.commit()
+    
+    # Log action
+    log = ActivityLog(user_id=current_admin.id, action="DELETE_CITY", description=f"Deleted city '{city.name}' (ID: {city_id})")
+    db.add(log)
+    db.commit()
+    
+    return {"detail": "City deleted successfully"}
+
 # -----------------
 # Analytics & Logs (Admin Only)
 # -----------------
@@ -165,18 +307,56 @@ def get_search_history(db: Session = Depends(get_db), current_admin: User = Depe
     return [{
         "id": s.id,
         "query": s.search_query,
-        "emirate_id": s.emirate_id,
-        "city_id": s.city_id,
+        "emirate": s.emirate.name if s.emirate else "",
+        "city": s.city.name if s.city else "",
         "timestamp": s.timestamp
     } for s in searches]
 
 @router.get("/logs")
 def get_activity_logs(db: Session = Depends(get_db), current_admin: User = Depends(get_current_active_admin)):
+    import re
     logs = db.query(ActivityLog).order_by(ActivityLog.timestamp.desc()).all()
-    return [{
-        "id": l.id,
-        "user_id": l.user_id,
-        "action": l.action,
-        "description": l.description,
-        "timestamp": l.timestamp
-    } for l in logs]
+    result = []
+    for l in logs:
+        actor_name = "System"
+        actor_id = None
+        actor_role = None
+        
+        if l.user_id:
+            user = db.query(User).filter(User.id == l.user_id).first()
+            if user:
+                actor_id = user.id
+                actor_role = user.role.value if hasattr(user.role, 'value') else str(user.role)
+                if user.role == UserRole.ADMIN:
+                    actor_name = "Admin"
+                elif user.role == UserRole.MODERATOR:
+                    actor_name = user.email
+                else:
+                    actor_name = user.email
+                    
+        # Extract target partner name and ID if applicable
+        target_partner_name = None
+        target_partner_id = None
+        
+        if l.action in ["VERIFY_PARTNER", "SUSPEND_PARTNER", "BAN_PARTNER"]:
+            match = re.search(r"partner (\d+)", l.description or "")
+            if match:
+                pid = int(match.group(1))
+                target_partner_id = pid
+                partner = db.query(PartnerProfile).filter(PartnerProfile.id == pid).first()
+                if partner:
+                    target_partner_name = partner.business_name or f"{partner.first_name} {partner.last_name}"
+                    
+        result.append({
+            "id": l.id,
+            "user_id": l.user_id,
+            "action": l.action,
+            "description": l.description,
+            "timestamp": l.timestamp,
+            "actor_name": actor_name,
+            "actor_id": actor_id,
+            "actor_role": actor_role,
+            "target_partner_name": target_partner_name,
+            "target_partner_id": target_partner_id
+        })
+    return result

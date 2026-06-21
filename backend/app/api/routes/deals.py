@@ -1,7 +1,7 @@
-from typing import List
+from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from app.api.dependencies import get_db, get_current_active_partner, get_current_user
+from app.api.dependencies import get_db, get_current_active_partner, get_current_user_optional
 from app.models.user import User, UserRole
 from app.models.partner import PartnerProfile, PartnerStatus
 from app.models.business import Deal, Service
@@ -17,30 +17,46 @@ def list_deals(
     city_id: int | None = None,
     category_id: int | None = None,
     q: str | None = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional),
 ):
     # Join with PartnerProfile to ensure only verified partners' deals are shown
-    query = db.query(Deal).join(PartnerProfile).join(Service, Deal.service_id == Service.id).filter(
+    query = db.query(Deal).join(PartnerProfile).filter(
         Deal.is_active == True,
         Deal.is_deleted == False,
-        PartnerProfile.status == PartnerStatus.VERIFIED,
-        Service.is_active == True,
-        Service.is_deleted == False
+        PartnerProfile.status == PartnerStatus.VERIFIED
     )
 
     if city_id:
-        query = query.filter(Service.city_id == city_id)
-    # Emirate ID can be checked if Service.city has emirate_id but we don't have direct join unless we join City
+        query = query.filter(Deal.city_id == city_id)
     if emirate_id:
         from app.models.catalog import City
-        query = query.join(City, Service.city_id == City.id).filter(City.emirate_id == emirate_id)
+        query = query.join(City, Deal.city_id == City.id).filter(City.emirate_id == emirate_id)
     if category_id:
-        query = query.filter(Service.category_id == category_id)
+        query = query.filter(Deal.category_id == category_id)
     if q:
-        query = query.filter(Service.title.ilike(f"%{q}%"))
+        query = query.filter(Deal.title.ilike(f"%{q}%"))
+
+    # Log the search in search history
+    from app.models.analytics import SearchHistory
+    search_log = SearchHistory(
+        user_id=current_user.id if current_user else None,
+        emirate_id=emirate_id,
+        city_id=city_id,
+        category_id=category_id,
+        search_query=q
+    )
+    db.add(search_log)
+    db.commit()
 
     deals = query.offset(skip).limit(limit).all()
-    return deals
+    results = [DealSchema.model_validate(d) for d in deals]
+    if not current_user:
+        for d in results:
+            if d.partner:
+                d.partner.phone = "HIDDEN_LOGIN_REQUIRED"
+                d.partner.email = "HIDDEN_LOGIN_REQUIRED"
+    return results
 
 @router.post("/", response_model=DealSchema)
 def create_deal(
@@ -51,18 +67,18 @@ def create_deal(
     profile = db.query(PartnerProfile).filter(PartnerProfile.user_id == current_user.id).first()
     if not profile or profile.status != PartnerStatus.VERIFIED:
         raise HTTPException(status_code=403, detail="Only verified partners can create deals.")
-        
-    service = db.query(Service).filter(Service.id == deal_in.service_id, Service.is_deleted == False).first()
-    if not service or service.partner_id != profile.id:
-        raise HTTPException(status_code=404, detail="Service not found or you don't own it.")
     
     current_deals_count = db.query(Deal).filter(Deal.partner_id == profile.id, Deal.is_deleted == False).count()
     if current_deals_count >= profile.deals_limit:
         raise HTTPException(status_code=400, detail=f"Deal limit of {profile.deals_limit} reached.")
         
     deal = Deal(
-        service_id=deal_in.service_id,
         partner_id=profile.id,
+        category_id=deal_in.category_id,
+        city_id=deal_in.city_id,
+        title=deal_in.title,
+        description=deal_in.description,
+        images=deal_in.images,
         discount_desc=deal_in.discount_desc,
         expiry_date=deal_in.expiry_date,
     )
@@ -115,3 +131,20 @@ def delete_deal(
     deal.is_deleted = True
     db.commit()
     return {"detail": "Deal deleted successfully."}
+
+@router.get("/{deal_id}", response_model=DealSchema)
+def get_deal(
+    deal_id: int, 
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional)
+):
+    deal = db.query(Deal).filter(Deal.id == deal_id, Deal.is_deleted == False).first()
+    if not deal:
+        raise HTTPException(status_code=404, detail="Deal not found.")
+        
+    result = DealSchema.model_validate(deal)
+    if not current_user:
+        if result.partner:
+            result.partner.phone = "HIDDEN_LOGIN_REQUIRED"
+            result.partner.email = "HIDDEN_LOGIN_REQUIRED"
+    return result

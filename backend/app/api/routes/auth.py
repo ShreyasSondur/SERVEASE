@@ -22,6 +22,7 @@ def create_mod(user_in: UserCreate, db: Session = Depends(get_db)):
     # Moderators are created inactive until an Admin verifies them
     user = User(
         email=user_in.email,
+        full_name=user_in.full_name,
         password_hash=security.get_password_hash(user_in.password),
         role=UserRole.MODERATOR,
         is_active=False,
@@ -56,6 +57,8 @@ def login_access_token(
     user = db.query(User).filter(User.email == form_data.username).first()
     if not user or not security.verify_password(form_data.password, user.password_hash):
         raise HTTPException(status_code=400, detail="Incorrect email or password")
+    elif user.is_banned:
+        raise HTTPException(status_code=403, detail="Account is banned")
     elif not user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
     

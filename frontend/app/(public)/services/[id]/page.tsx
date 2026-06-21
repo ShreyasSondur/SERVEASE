@@ -1,34 +1,76 @@
 "use client";
 
+import { useState, useEffect } from "react";
+import { useParams, useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { User, BadgeCheck, MapPin } from "lucide-react";
-
-// Mock data matching the screenshot
-const SERVICE_DATA = {
-  title: "Wall Painting Services Dubai | Fast Clean",
-  postedBy: {
-    name: "Sheik Nayaaz",
-    verified: true,
-  },
-  details: {
-    providerType: "Licensed Company",
-    emergencyService: "Available 24/7",
-    yearEstablished: "2023",
-  },
-  location: "Dubailand, Dubai, UAE",
-  servicesIncluded: "Interior Wall Painting, Exterior / Villa Painting, Wallpaper Removal & Installation, Waterproofing / Damp Repair, Wood Painting, Decorative / Accent Walls, Ceiling Painting, Post-Painting Deep Clean",
-  description: `Fixit All Solutions – Painting, Carpentry, Plumbing, Gypsum Board, and AC Services for Villas, Offices, Buildings, Apartments Companies in Dubai.
-
-Painting – High-quality interior and exterior painting.
-Carpentry – Custom woodwork and fittings.
-Plumbing – Expert solutions for all your plumbing needs.
-Gypsum Board – Stylish, durable partitions.
-AC Services – Reliable AC maintenance and repair.
-Contact us today for a free quote!`
-};
+import { User, BadgeCheck, MapPin, X, Phone, MessageCircle, Calendar } from "lucide-react";
+import Link from "next/link";
+import api from "@/lib/api";
+import ImageCarousel from "@/components/ImageCarousel";
 
 export default function ServiceDetail() {
+  const params = useParams();
+  const router = useRouter();
+  const [service, setService] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [showContactModal, setShowContactModal] = useState(false);
+  const [showAuthRequiredModal, setShowAuthRequiredModal] = useState(false);
+
+  useEffect(() => {
+    const fetchService = async () => {
+      try {
+        const res = await api.get(`/services/${params.id}`);
+        setService(res.data);
+      } catch (err: any) {
+        setError(err.response?.data?.detail || "Failed to load service details.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (params.id) {
+      fetchService();
+    }
+  }, [params.id]);
+
+  const handleContactClick = () => {
+    if (!localStorage.getItem("token")) {
+      setShowAuthRequiredModal(true);
+    } else {
+      setShowContactModal(true);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="relative min-h-screen bg-[#0b0a0a] flex flex-col w-full font-sans text-white">
+        <Navbar />
+        <div className="flex-grow flex items-center justify-center">
+          <p className="text-gray-400">Loading service details...</p>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (error || !service) {
+    return (
+      <div className="relative min-h-screen bg-[#0b0a0a] flex flex-col w-full font-sans text-white">
+        <Navbar />
+        <div className="flex-grow flex flex-col items-center justify-center gap-4">
+          <p className="text-red-500">{error || "Service not found."}</p>
+          <button onClick={() => router.back()} className="text-[#d4933a] hover:underline">
+            Go Back
+          </button>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  const partnerName = service.partner?.business_name || `${service.partner?.first_name} ${service.partner?.last_name}`;
+
   return (
     <div className="relative min-h-screen bg-[#0b0a0a] flex flex-col w-full font-sans text-white">
       <Navbar />
@@ -36,19 +78,20 @@ export default function ServiceDetail() {
       <main className="flex-grow w-full max-w-[1200px] mx-auto px-4 sm:px-6 md:px-8 py-10 pt-28">
         {/* Title */}
         <h1 className="text-2xl sm:text-3xl md:text-[32px] font-medium mb-6 sm:mb-8 text-white tracking-wide animate-fade-in">
-          {SERVICE_DATA.title}
+          {service.title}
         </h1>
         
         {/* Top Grid: Image & Info Cards */}
         <div className="flex flex-col lg:flex-row gap-5 sm:gap-6 mb-6 sm:mb-8 animate-slide-up">
           
-          {/* Left: Image Placeholder (stretches to match right column height on desktop) */}
-          <div className="w-full lg:w-[65%] bg-[#a3a3a3] rounded-2xl flex items-center justify-center min-h-[250px] sm:min-h-[350px] lg:min-h-0 shadow-lg overflow-hidden relative">
-            <span className="text-black/40 text-sm sm:text-base font-bold tracking-widest uppercase relative z-10">
-              image
-            </span>
-            {/* Subtle inset shadow */}
-            <div className="absolute inset-0 shadow-[inset_0_0_40px_rgba(0,0,0,0.1)] pointer-events-none"></div>
+          {/* Left: Image Card */}
+          <div className="w-full lg:w-[65%] rounded-2xl min-h-[250px] sm:min-h-[350px] lg:min-h-[400px] shadow-lg overflow-hidden relative">
+            <ImageCarousel
+              images={service.images}
+              imageUrl={service.image_url}
+              title={service.title}
+              isFeatured={service.isFeatured}
+            />
           </div>
 
           {/* Right: Info Cards */}
@@ -65,19 +108,22 @@ export default function ServiceDetail() {
                 </div>
                 <div>
                   <h4 className="font-medium text-[15px] sm:text-[16px] text-white tracking-wide">
-                    {SERVICE_DATA.postedBy.name}
+                    {partnerName}
                   </h4>
-                  {SERVICE_DATA.postedBy.verified && (
+                  {service.partner?.is_verified && (
                     <div className="flex items-center gap-1.5 mt-1">
                       <BadgeCheck className="w-3.5 h-3.5 text-[#3b82f6]" strokeWidth={2.5} />
                       <span className="text-[#3b82f6] text-[10px] font-bold uppercase tracking-wider">
-                        Verified User
+                        Verified Partner
                       </span>
                     </div>
                   )}
                 </div>
               </div>
-              <button className="w-full bg-[#d4933a] hover:bg-[#c28532] text-white font-bold tracking-wide py-3.5 rounded-xl text-sm transition-all shadow-[0_0_15px_rgba(212,147,58,0.2)] hover:shadow-[0_0_25px_rgba(212,147,58,0.4)]">
+              <button 
+                onClick={handleContactClick}
+                className="w-full bg-[#d4933a] hover:bg-[#c28532] text-white font-bold tracking-wide py-3.5 rounded-xl text-sm transition-all shadow-[0_0_15px_rgba(212,147,58,0.2)] hover:shadow-[0_0_25px_rgba(212,147,58,0.4)] cursor-pointer"
+              >
                 Contact Now
               </button>
             </div>
@@ -89,16 +135,16 @@ export default function ServiceDetail() {
               </h3>
               <div className="flex flex-col gap-3.5">
                 <div className="flex justify-between items-center text-[13px] sm:text-sm">
-                  <span className="text-[#888]">Provider Type</span>
-                  <span className="text-white font-medium text-right">{SERVICE_DATA.details.providerType}</span>
+                  <span className="text-[#888]">Service Category</span>
+                  <span className="text-white font-medium text-right">{service.category?.name || "Global Service"}</span>
                 </div>
                 <div className="flex justify-between items-center text-[13px] sm:text-sm">
                   <span className="text-[#888]">Emergency Service</span>
-                  <span className="text-white font-medium text-right">{SERVICE_DATA.details.emergencyService}</span>
+                  <span className="text-white font-medium text-right">Available 24/7</span>
                 </div>
                 <div className="flex justify-between items-center text-[13px] sm:text-sm">
-                  <span className="text-[#888]">Year of Establishment</span>
-                  <span className="text-white font-medium text-right">{SERVICE_DATA.details.yearEstablished}</span>
+                  <span className="text-[#888]">Provider Type</span>
+                  <span className="text-white font-medium text-right">Licensed Company</span>
                 </div>
               </div>
             </div>
@@ -110,21 +156,11 @@ export default function ServiceDetail() {
               </h3>
               <div className="flex items-start gap-2.5 text-[13px] sm:text-sm text-[#ddd]">
                 <MapPin className="w-4 h-4 text-[#888] shrink-0 mt-0.5" strokeWidth={2} />
-                <span className="leading-relaxed font-light">{SERVICE_DATA.location}</span>
+                <span className="leading-relaxed font-light">{service.city?.name || "Dubai"}, UAE</span>
               </div>
             </div>
 
           </div>
-        </div>
-
-        {/* Services Included Section */}
-        <div className="bg-[#151515] border border-[#222] rounded-2xl p-5 sm:p-6 md:p-8 mb-5 sm:mb-6 shadow-md animate-slide-up" style={{ animationDelay: "100ms" }}>
-          <h3 className="text-[#d4933a] text-lg font-medium mb-3 tracking-wide">
-            Services:
-          </h3>
-          <p className="text-[#d4d2cd] text-sm sm:text-[15px] leading-relaxed font-light">
-            {SERVICE_DATA.servicesIncluded}
-          </p>
         </div>
 
         {/* Description Section */}
@@ -133,13 +169,104 @@ export default function ServiceDetail() {
             Description
           </h3>
           <div className="text-[#d4d2cd] text-sm sm:text-[15px] leading-relaxed font-light whitespace-pre-wrap">
-            {SERVICE_DATA.description}
+            {service.description}
           </div>
         </div>
         
       </main>
       
       <Footer />
+
+      {/* Auth required modal */}
+      {showAuthRequiredModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <div className="bg-[#151515] border border-[#222] rounded-3xl p-8 max-w-md w-full text-center shadow-2xl animate-fade-in relative text-white">
+            <button 
+              onClick={() => setShowAuthRequiredModal(false)} 
+              className="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <div className="w-16 h-16 rounded-full bg-[#d4933a]/10 border border-[#d4933a]/30 flex items-center justify-center mx-auto mb-6">
+              <Phone className="w-8 h-8 text-[#d4933a]" />
+            </div>
+            <h2 className="text-2xl font-semibold text-white mb-3 tracking-wide">Login to View Contact</h2>
+            <p className="text-[#888] text-sm leading-relaxed mb-8">
+              Please log in or register for a free account to view this partner's contact details and connect with them.
+            </p>
+            <div className="flex flex-col gap-3">
+              <Link href={`/login?redirect=/services/${service.id}`}>
+                <button className="w-full bg-[#d4933a] hover:bg-[#c28532] text-white py-3.5 rounded-xl font-bold transition-all shadow-[0_0_15px_rgba(212,147,58,0.25)] cursor-pointer">
+                  Log In
+                </button>
+              </Link>
+              <Link href={`/register?redirect=/services/${service.id}`}>
+                <button className="w-full bg-[#222] border border-[#333] hover:border-[#444] text-[#aaa] hover:text-white py-3.5 rounded-xl font-bold transition-all cursor-pointer">
+                  Register for Free
+                </button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Contact Details Popup Modal */}
+      {showContactModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <div className="bg-[#151515] border border-[#222] rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl animate-fade-in relative text-white">
+            <button 
+              onClick={() => setShowContactModal(false)} 
+              className="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            
+            <h3 className="text-xl font-bold tracking-wide text-white mb-2">
+              Contact Provider
+            </h3>
+            <p className="text-[#d4933a] text-[15px] font-semibold mb-6 font-serif">
+              {partnerName}
+            </p>
+            
+            <div className="flex flex-col gap-4 mb-8">
+              <div className="flex items-center gap-3 bg-[#111] p-4 rounded-xl border border-[#222]">
+                <Phone className="w-5 h-5 text-white/50" />
+                <div className="flex flex-col">
+                  <span className="text-[10px] uppercase tracking-wider text-gray-500">Phone Number</span>
+                  <span className="text-[15px] font-medium">{service.partner?.phone}</span>
+                </div>
+              </div>
+              
+              {service.partner?.email && (
+                <div className="flex items-center gap-3 bg-[#111] p-4 rounded-xl border border-[#222]">
+                  <span className="text-[15px] text-white/50 font-bold shrink-0">@</span>
+                  <div className="flex flex-col">
+                    <span className="text-[10px] uppercase tracking-wider text-gray-500">Email Address</span>
+                    <span className="text-[15px] font-medium">{service.partner?.email}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <div className="flex flex-col sm:flex-row gap-3">
+              <a 
+                href={`tel:${service.partner?.phone}`}
+                className="flex-1 bg-[#222] hover:bg-[#333] border border-[#333] hover:border-[#d4933a] text-white py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-all cursor-pointer"
+              >
+                <Phone className="w-4 h-4" /> Call Now
+              </a>
+              <a 
+                href={`https://wa.me/${service.partner?.phone?.replace(/\D/g, '')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 bg-[#25D366] hover:bg-[#20ba5a] text-white py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-[0_0_15px_rgba(37,211,102,0.25)] cursor-pointer"
+              >
+                <MessageCircle className="w-4 h-4" /> WhatsApp
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

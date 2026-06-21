@@ -19,6 +19,7 @@ class City(Base):
 
     emirate = relationship("Emirate", back_populates="cities")
     services = relationship("Service", back_populates="city")
+    deals = relationship("Deal", back_populates="city", cascade="all, delete-orphan")
 
 class Category(Base):
     __tablename__ = "categories"
@@ -28,3 +29,4 @@ class Category(Base):
     description = Column(String, nullable=True)
 
     services = relationship("Service", back_populates="category")
+    deals = relationship("Deal", back_populates="category", cascade="all, delete-orphan")

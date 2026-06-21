@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Search, MapPin, ChevronDown, ArrowRight, Target } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 const EMIRATES_DATA: Record<string, string[]> = {
   "Dubai": ["Sobha Hartland", "Downtown Dubai", "Dubai Marina", "Jumeirah", "Business Bay", "Al Barsha", "Palm Jumeirah"],
@@ -16,6 +17,7 @@ const EMIRATES_DATA: Record<string, string[]> = {
 const EMIRATES = Object.keys(EMIRATES_DATA);
 
 export default function Hero() {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [emirate, setEmirate] = useState("Dubai");
   const [area, setArea] = useState("Sobha Hartland");
@@ -49,7 +51,7 @@ export default function Hero() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    alert(`Searching for "${searchQuery}" in ${area}, ${emirate}`);
+    router.push(`/services?q=${encodeURIComponent(searchQuery)}&emirate=${encodeURIComponent(emirate)}&area=${encodeURIComponent(area)}`);
   };
 
   return (
