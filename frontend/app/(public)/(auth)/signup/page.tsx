@@ -40,6 +40,7 @@ export default function Signup() {
       const response = await api.post("/auth/signup", {
         email: email,
         password: password,
+        full_name: fullName,
       });
 
       if (response.data.id) {
