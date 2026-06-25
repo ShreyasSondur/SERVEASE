@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Search, MapPin, ChevronDown, ArrowRight, Target } from "lucide-react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 const EMIRATES_DATA: Record<string, string[]> = {
   "Dubai": ["Sobha Hartland", "Downtown Dubai", "Dubai Marina", "Jumeirah", "Business Bay", "Al Barsha", "Palm Jumeirah"],
@@ -21,10 +22,10 @@ export default function Hero() {
   const [searchQuery, setSearchQuery] = useState("");
   const [emirate, setEmirate] = useState("Dubai");
   const [area, setArea] = useState("Sobha Hartland");
-  
+
   const [isEmirateOpen, setIsEmirateOpen] = useState(false);
   const [isAreaOpen, setIsAreaOpen] = useState(false);
-  
+
   const emirateRef = useRef<HTMLDivElement>(null);
   const areaRef = useRef<HTMLDivElement>(null);
 
@@ -47,7 +48,7 @@ export default function Hero() {
     if (!EMIRATES_DATA[emirate].includes(area)) {
       setArea(EMIRATES_DATA[emirate][0]);
     }
-  }, [emirate]);
+  }, [emirate, area]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,10 +59,13 @@ export default function Hero() {
     <section className="relative min-h-screen flex items-center w-full bg-[#0b0a0a]">
       {/* Background Image & Rich Overlay Gradients */}
       <div className="absolute inset-0 z-0 overflow-hidden">
-        <img
+        <Image
           src="/images/hero-section-bg.png"
           alt="Painter detailing a black wall"
-          className="h-full w-full object-cover object-center md:object-[center_35%] select-none pointer-events-none"
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover object-center md:object-[center_35%] select-none pointer-events-none"
         />
         {/* Mobile: stronger overlay for readability */}
         <div className="absolute inset-0 bg-[#0b0a0a]/70 md:hidden" />
@@ -87,7 +91,7 @@ export default function Hero() {
 
             {/* Subheading */}
             <p className="mt-4 sm:mt-6 text-sm sm:text-base md:text-lg text-[#D4D2CD] font-light leading-relaxed font-sans animate-fade-in delay-200">
-              From small fixes to big projects — connect with verified workers nearby. It&apos;s free for customers.
+              From small fixes to big projects — connect with verified workers nearby.
             </p>
 
             {/* Search Form */}
@@ -123,15 +127,14 @@ export default function Hero() {
                       <span className="truncate">{area}</span>
                     </div>
                     <ChevronDown
-                      className={`w-3.5 h-3.5 text-[#888] transition-transform duration-300 ${
-                        isAreaOpen ? "rotate-180" : ""
-                      }`}
+                      className={`w-3.5 h-3.5 text-[#888] transition-transform duration-300 ${isAreaOpen ? "rotate-180" : ""
+                        }`}
                     />
                   </button>
 
                   {/* Area Dropdown Menu */}
                   {isAreaOpen && (
-                    <div className="absolute left-0 bottom-full sm:bottom-auto sm:top-full mb-2 sm:mt-6 w-[220px] max-h-[300px] overflow-y-auto rounded-2xl bg-[#1c1c1c] border border-[#333] p-2 shadow-2xl z-50 flex flex-col gap-1 custom-scrollbar">
+                    <div className="absolute left-0 right-0 bottom-full sm:bottom-auto sm:top-full mb-2 sm:mt-6 sm:w-[220px] max-h-[300px] overflow-y-auto rounded-2xl bg-[#1c1c1c] border border-[#333] p-2 shadow-2xl z-50 flex flex-col gap-1 custom-scrollbar">
                       {EMIRATES_DATA[emirate].map((loc) => (
                         <button
                           key={loc}
@@ -140,11 +143,10 @@ export default function Hero() {
                             setArea(loc);
                             setIsAreaOpen(false);
                           }}
-                          className={`w-full text-left px-4 py-2.5 text-sm rounded-xl transition-all duration-150 ${
-                            area === loc
-                              ? "bg-[#d4933a]/10 text-[#d4933a] font-medium"
-                              : "text-[#D4D2CD] hover:text-white hover:bg-white/5"
-                          }`}
+                          className={`w-full text-left px-4 py-2.5 text-sm rounded-xl transition-all duration-150 ${area === loc
+                            ? "bg-[#d4933a]/10 text-[#d4933a] font-medium"
+                            : "text-[#D4D2CD] hover:text-white hover:bg-white/5"
+                            }`}
                         >
                           {loc}
                         </button>
@@ -168,15 +170,14 @@ export default function Hero() {
                       <span className="truncate">{emirate}</span>
                     </div>
                     <ChevronDown
-                      className={`w-3.5 h-3.5 text-[#888] transition-transform duration-300 ${
-                        isEmirateOpen ? "rotate-180" : ""
-                      }`}
+                      className={`w-3.5 h-3.5 text-[#888] transition-transform duration-300 ${isEmirateOpen ? "rotate-180" : ""
+                        }`}
                     />
                   </button>
 
                   {/* Emirate Dropdown Menu */}
                   {isEmirateOpen && (
-                    <div className="absolute right-0 sm:right-auto sm:left-0 bottom-full sm:bottom-auto sm:top-full mb-2 sm:mt-6 w-[180px] rounded-2xl bg-[#1c1c1c] border border-[#333] p-2 shadow-2xl z-50 flex flex-col gap-1">
+                    <div className="absolute left-0 right-0 sm:right-auto sm:left-0 bottom-full sm:bottom-auto sm:top-full mb-2 sm:mt-6 sm:w-[180px] rounded-2xl bg-[#1c1c1c] border border-[#333] p-2 shadow-2xl z-50 flex flex-col gap-1">
                       {EMIRATES.map((em) => (
                         <button
                           key={em}
@@ -185,11 +186,10 @@ export default function Hero() {
                             setEmirate(em);
                             setIsEmirateOpen(false);
                           }}
-                          className={`w-full text-left px-4 py-2.5 text-sm rounded-xl transition-all duration-150 ${
-                            emirate === em
-                              ? "bg-[#d4933a]/10 text-[#d4933a] font-medium"
-                              : "text-[#D4D2CD] hover:text-white hover:bg-white/5"
-                          }`}
+                          className={`w-full text-left px-4 py-2.5 text-sm rounded-xl transition-all duration-150 ${emirate === em
+                            ? "bg-[#d4933a]/10 text-[#d4933a] font-medium"
+                            : "text-[#D4D2CD] hover:text-white hover:bg-white/5"
+                            }`}
                         >
                           {em}
                         </button>

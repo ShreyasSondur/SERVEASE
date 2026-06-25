@@ -1,19 +1,33 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X, User } from "lucide-react";
+import AuthModal from "./AuthModal";
 
 export default function Navbar() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  const profileRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
+        setIsProfileDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -121,10 +135,10 @@ export default function Navbar() {
               <div className="text-white/40 text-sm font-serif">Loading...</div>
             ) : isLoggedIn ? (
               <>
-                <div className="relative">
+                <div className="relative" ref={profileRef}>
                   <button
                     onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
-                    className="flex items-center justify-center w-10 h-10 rounded-full border border-[#333] hover:border-gold transition-colors focus:outline-none"
+                    className="flex items-center justify-center w-10 h-10 rounded-full border border-[#333] hover:border-gold transition-colors focus:outline-none cursor-pointer"
                   >
                     <User className="w-5 h-5 text-white" />
                   </button>
@@ -191,7 +205,7 @@ export default function Navbar() {
                 </Link>
 
                 <Link
-                  href="/partners/becomePartner"
+                  href="/login?redirect=/partners/becomePartner"
                   className="relative inline-flex items-center justify-center rounded-full border border-gold py-2 px-6 tracking-wide text-base md:text-[17px] lg:text-lg font-serif font-bold text-gold hover:bg-gold/10 transition-colors"
                 >
                   Become a partner
@@ -331,7 +345,7 @@ export default function Navbar() {
               </Link>
 
               <Link
-                href="/partners/becomePartner"
+                href="/login?redirect=/partners/becomePartner"
                 onClick={() => setIsOpen(false)}
                 className="mt-4 block w-full text-center rounded-full border border-gold py-2 px-5 tracking-wide text-[17px] font-bold text-gold hover:bg-gold/10 transition-colors"
               >
@@ -341,6 +355,8 @@ export default function Navbar() {
           )}
         </div>
       </div>
+
+      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
     </header>
   );
 }

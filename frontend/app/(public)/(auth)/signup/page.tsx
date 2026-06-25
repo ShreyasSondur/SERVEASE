@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -17,6 +17,13 @@ export default function Signup() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loginUrl, setLoginUrl] = useState("/login");
+
+  useEffect(() => {
+    if (window.location.search) {
+      setLoginUrl(`/login${window.location.search}`);
+    }
+  }, []);
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,7 +54,22 @@ export default function Signup() {
 
         if (loginResponse.data.access_token) {
           localStorage.setItem("token", loginResponse.data.access_token);
-          window.location.href = "/";
+          const urlParams = new URLSearchParams(window.location.search);
+          let redirectPath = urlParams.get("redirect") || "/";
+
+          if (redirectPath === "/partners/becomePartner") {
+            try {
+              const userRes = await api.get("/auth/me");
+              const role = userRes.data.role;
+              if (role === "PARTNER" || role === "ADMIN") {
+                redirectPath = "/partners/dashboard";
+              }
+            } catch (meErr) {
+              console.error("Failed to fetch user role on signup", meErr);
+            }
+          }
+          
+          window.location.href = redirectPath;
         }
       }
     } catch (err: any) {
@@ -74,7 +96,7 @@ export default function Signup() {
           {/* Tabs */}
           <div className="flex w-full mb-6 border-b border-[#333]">
             <Link
-              href="/login"
+              href={loginUrl}
               className="flex-1 pb-3.5 text-center text-[12px] sm:text-[13px] font-bold tracking-[0.1em] uppercase transition-colors text-[#777] hover:text-white"
             >
               LOGIN

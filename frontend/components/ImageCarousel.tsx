@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ChevronLeft, ChevronRight, Star } from "lucide-react";
+import Image from "next/image";
 
 interface ImageCarouselProps {
   images?: string[];
@@ -20,9 +21,20 @@ export default function ImageCarousel({
 }: ImageCarouselProps) {
   const [activeIndex, setActiveIndex] = useState(0);
 
+  let parsedImages = [];
+  if (Array.isArray(images)) {
+    parsedImages = images;
+  } else if (typeof images === "string") {
+    try {
+      parsedImages = JSON.parse(images);
+    } catch (e) {
+      parsedImages = [images];
+    }
+  }
+
   // Combine images and imageUrl into a list of unique, valid URLs
   const rawImages = [
-    ...(Array.isArray(images) ? images : []),
+    ...(Array.isArray(parsedImages) ? parsedImages : []),
     ...(imageUrl ? [imageUrl] : []),
   ];
   
@@ -62,11 +74,13 @@ export default function ImageCarousel({
       {/* Images container */}
       <div className="w-full h-full relative">
         {validImages.map((img, index) => (
-          <img
+          <Image
             key={index}
             src={img}
             alt={`${title} - Image ${index + 1}`}
-            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ease-in-out ${
+            fill
+            sizes="(max-width: 768px) 100vw, 50vw"
+            className={`absolute inset-0 object-cover transition-opacity duration-500 ease-in-out ${
               index === activeIndex ? "opacity-100 z-10" : "opacity-0 z-0"
             }`}
           />

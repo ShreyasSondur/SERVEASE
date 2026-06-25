@@ -470,7 +470,7 @@ export default function AdminDashboard() {
 
             <div className="flex flex-col gap-3">
               {filteredMods.map((m) => {
-                let statusBadge = "";
+                let statusBadge: React.ReactNode = null;
                 if (m.is_banned) {
                   statusBadge = <span className="ml-3 text-xs px-2 py-1 rounded bg-red-500/20 text-red-400">Banned</span>;
                 } else {
@@ -884,6 +884,14 @@ export default function AdminDashboard() {
         );
     }
   };
+
+  if (loading || !userRole) {
+    return (
+      <div className="min-h-screen bg-[#0b0a0a] flex items-center justify-center text-white">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#d4933a]"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#0b0a0a] flex font-sans">
