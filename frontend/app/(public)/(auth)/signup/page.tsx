@@ -5,7 +5,7 @@ import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Mail, Lock, Eye, EyeOff, User } from "lucide-react";
-import api from "@/lib/api";
+import api, { API_URL } from "@/lib/api";
 
 export default function Signup() {
   const [showPassword, setShowPassword] = useState(false);
@@ -210,7 +210,7 @@ export default function Signup() {
 
           <button 
             type="button" 
-            onClick={() => window.location.href = "http://localhost:8000/api/v1/auth/google/login"}
+            onClick={() => window.location.href = `${API_URL}/auth/google/login`}
             className="w-full mt-6 bg-[#222] hover:bg-[#333] border border-[#333] text-white font-semibold py-3 rounded-xl transition-colors text-[14px] sm:text-[15px] shadow-lg flex items-center justify-center gap-2 cursor-pointer"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
