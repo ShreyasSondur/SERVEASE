@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Star } from "lucide-react";
+import Image from "next/image";
 
 const REVIEWS = [
   {
@@ -156,11 +157,13 @@ export default function CustomerFeedback() {
               <div className="flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-3 sm:gap-4">
                   {/* Avatar */}
-                  <div className="w-10 h-10 sm:w-11 sm:h-11 lg:w-12 lg:h-12 rounded-full overflow-hidden shrink-0 border-2 border-gold/40">
-                    <img
+                  <div className="w-10 h-10 sm:w-11 sm:h-11 lg:w-12 lg:h-12 rounded-full overflow-hidden shrink-0 border-2 border-gold/40 relative">
+                    <Image
                       src={review.image}
                       alt={review.name}
-                      className="w-full h-full object-cover"
+                      fill
+                      sizes="48px"
+                      className="object-cover"
                     />
                   </div>
                   {/* Name & Title */}

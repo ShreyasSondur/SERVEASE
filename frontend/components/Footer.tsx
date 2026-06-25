@@ -44,7 +44,7 @@ export default function Footer() {
                 Deals
               </Link>
               <Link
-                href="/profile"
+                href="/contact"
                 className="text-white/50 hover:text-gold text-sm font-sans transition-colors"
               >
                 Contact Us

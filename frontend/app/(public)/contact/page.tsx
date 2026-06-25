@@ -57,7 +57,7 @@ export default function Contact() {
 
           {/* Right Column - Editorial Form */}
           <div className="w-full lg:w-[55%] flex flex-col justify-center">
-            <div className="bg-[#111] border border-[#222] p-8 sm:p-12 rounded-2xl shadow-xl">
+            <div className="bg-[#111] border border-[#222] p-6 sm:p-12 rounded-2xl shadow-xl">
               <h2 className="text-xl font-medium text-white mb-8">Send Inquiry</h2>
               <form className="flex flex-col gap-8">
                 

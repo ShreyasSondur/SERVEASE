@@ -14,6 +14,7 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [signupUrl, setSignupUrl] = useState("/signup");
 
   useEffect(() => {
     // Check if URL has ?token=... from OAuth callback
@@ -21,7 +22,13 @@ export default function Login() {
     const token = urlParams.get("token");
     if (token) {
       localStorage.setItem("token", token);
-      window.location.href = "/";
+      const redirectPath = urlParams.get("redirect") || "/";
+      window.location.href = redirectPath;
+    }
+    
+    // Carry over query params to signup link
+    if (window.location.search) {
+      setSignupUrl(`/signup${window.location.search}`);
     }
   }, []);
 
@@ -44,8 +51,22 @@ export default function Login() {
 
       if (response.data.access_token) {
         localStorage.setItem("token", response.data.access_token);
-        // Temporarily redirect to root, in future can check user role and redirect to partner/admin dash
-        window.location.href = "/";
+        const urlParams = new URLSearchParams(window.location.search);
+        let redirectPath = urlParams.get("redirect") || "/";
+        
+        if (redirectPath === "/partners/becomePartner") {
+          try {
+            const userRes = await api.get("/auth/me");
+            const role = userRes.data.role;
+            if (role === "PARTNER" || role === "ADMIN") {
+              redirectPath = "/partners/dashboard";
+            }
+          } catch (meErr) {
+            console.error("Failed to fetch user role on login", meErr);
+          }
+        }
+        
+        window.location.href = redirectPath;
       }
     } catch (err: any) {
       setError(err.response?.data?.detail || "Login failed. Please try again.");
@@ -82,7 +103,7 @@ export default function Login() {
               LOGIN
             </Link>
             <Link
-              href="/signup"
+              href={signupUrl}
               className="flex-1 pb-3.5 text-center text-[12px] sm:text-[13px] font-bold tracking-[0.1em] uppercase transition-colors text-[#777] hover:text-white"
             >
               CREATE ACCOUNT

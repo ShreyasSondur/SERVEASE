@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import {
   Search, MapPin, ChevronDown, ArrowRight,
   ChevronLeft, ChevronRight, BadgeCheck,
-  Calendar, Target, CheckCircle2, X, MessageCircle, Phone, Tag
+  Calendar, Target, CheckCircle2, X, MessageCircle, Phone, Tag, Briefcase
 } from "lucide-react";
 import Link from "next/link";
 import api from "@/lib/api";
@@ -51,10 +51,29 @@ export default function Deals() {
   const [showContactModal, setShowContactModal] = useState(false);
   const [showAuthRequiredModal, setShowAuthRequiredModal] = useState(false);
 
+  const emirateRef = useRef<HTMLDivElement>(null);
+  const cityRef = useRef<HTMLDivElement>(null);
+  
+  const [isEmirateOpen, setIsEmirateOpen] = useState(false);
+  const [isCityOpen, setIsCityOpen] = useState(false);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (emirateRef.current && !emirateRef.current.contains(event.target as Node)) {
+        setIsEmirateOpen(false);
+      }
+      if (cityRef.current && !cityRef.current.contains(event.target as Node)) {
+        setIsCityOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const fetchDeals = async () => {
     setLoading(true);
     try {
-      let url = "/deals?";
+      let url = "/deals/?";
       if (selectedEmirate) url += `emirate_id=${selectedEmirate}&`;
       if (selectedCity) url += `city_id=${selectedCity}&`;
       if (selectedGlobalService) url += `category_id=${selectedGlobalService}&`;
@@ -76,18 +95,10 @@ export default function Deals() {
     const token = localStorage.getItem("token");
     setIsLoggedIn(!!token);
     setCheckedAuth(true);
-    if (token) {
-      fetchDeals();
-    } else {
-      setLoading(false);
-    }
+    fetchDeals();
   }, []);
 
   const handleSearch = () => {
-    if (!localStorage.getItem("token")) {
-      setShowAuthRequiredModal(true);
-      return;
-    }
     fetchDeals();
   };
 
@@ -95,10 +106,13 @@ export default function Deals() {
     if (!localStorage.getItem("token")) {
       setShowAuthRequiredModal(true);
     } else {
-      setSelectedServiceForContact(deal.service);
+      setSelectedServiceForContact(deal);
       setShowContactModal(true);
     }
   };
+
+  const currentEmirateName = emirates.find(e => e.id.toString() === selectedEmirate)?.name || "All Emirates";
+  const currentCityName = cities.find(c => c.id.toString() === selectedCity)?.name || "All Cities";
 
   return (
     <div className="relative min-h-screen bg-[#111111] flex flex-col w-full font-sans">
@@ -133,41 +147,116 @@ export default function Deals() {
           {/* Dividers and Dropdowns */}
           <div className="flex flex-col md:flex-row items-center w-full md:w-auto border-t md:border-t-0 md:border-l border-[#333]">
             {/* Emirate Dropdown */}
-            <div className="relative flex items-center justify-between md:justify-start w-full md:w-auto gap-3 px-4 md:px-6 py-3.5 md:py-3 text-white border-b md:border-b-0 md:border-r border-[#333] h-full">
-              <MapPin className="w-4 h-4 text-white/50" strokeWidth={1.5} />
-              <select 
-                value={selectedEmirate}
-                onChange={(e) => {
-                  setSelectedEmirate(e.target.value);
-                  setSelectedCity(""); // reset city when emirate changes
+            <div className="relative flex items-center justify-between md:justify-start w-full md:w-[170px] gap-3 px-4 md:px-6 py-3.5 md:py-3 text-white border-b md:border-b-0 md:border-r border-[#333] h-full" ref={emirateRef}>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsEmirateOpen(!isEmirateOpen);
+                  setIsCityOpen(false);
                 }}
-                className="bg-transparent text-[13px] md:text-[14px] font-medium outline-none appearance-none cursor-pointer w-full md:w-[120px]"
+                className="flex items-center justify-between w-full gap-3 text-left text-sm md:text-[14px] font-medium text-white hover:text-[#d4933a] transition-colors duration-200"
               >
-                <option value="" className="text-black">All Emirates</option>
-                {emirates.map((e) => (
-                  <option key={e.id} value={e.id} className="text-black">{e.name}</option>
-                ))}
-              </select>
-              <ChevronDown className="w-4 h-4 ml-2 md:ml-1 text-white/40 pointer-events-none absolute right-4 md:right-4" />
+                <div className="flex items-center gap-2 truncate">
+                  <MapPin className="w-4 h-4 text-white/50 shrink-0" strokeWidth={1.5} />
+                  <span className="truncate">{currentEmirateName}</span>
+                </div>
+                <ChevronDown
+                  className={`w-3.5 h-3.5 text-[#888] shrink-0 transition-transform duration-300 ${isEmirateOpen ? "rotate-180" : ""}`}
+                />
+              </button>
+
+              {isEmirateOpen && (
+                <div className="absolute left-0 right-0 md:left-4 md:right-auto top-full mt-2 md:w-[180px] rounded-2xl bg-[#1c1c1c] border border-[#333] p-2 shadow-2xl z-50 flex flex-col gap-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedEmirate("");
+                      setSelectedCity("");
+                      setIsEmirateOpen(false);
+                    }}
+                    className={`w-full text-left px-4 py-2.5 text-sm rounded-xl transition-all duration-150 ${selectedEmirate === ""
+                      ? "bg-[#d4933a]/10 text-[#d4933a] font-medium"
+                      : "text-[#D4D2CD] hover:text-white hover:bg-white/5"
+                      }`}
+                  >
+                    All Emirates
+                  </button>
+                  {emirates.map((e) => (
+                    <button
+                      key={e.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedEmirate(e.id.toString());
+                        setSelectedCity("");
+                        setIsEmirateOpen(false);
+                      }}
+                      className={`w-full text-left px-4 py-2.5 text-sm rounded-xl transition-all duration-150 ${selectedEmirate === e.id.toString()
+                        ? "bg-[#d4933a]/10 text-[#d4933a] font-medium"
+                        : "text-[#D4D2CD] hover:text-white hover:bg-white/5"
+                        }`}
+                    >
+                      {e.name}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* City Dropdown */}
-            <div className="relative flex items-center justify-between md:justify-start w-full md:w-auto gap-3 px-4 md:px-6 py-3.5 md:py-3 text-white h-full">
-              <Target className="w-4 h-4 text-white/50" strokeWidth={1.5} />
-              <select 
-                value={selectedCity}
-                onChange={(e) => setSelectedCity(e.target.value)}
-                className="bg-transparent text-[13px] md:text-[14px] font-medium outline-none appearance-none cursor-pointer w-full md:w-[120px]"
+            <div className="relative flex items-center justify-between md:justify-start w-full md:w-[170px] gap-3 px-4 md:px-6 py-3.5 md:py-3 text-white h-full" ref={cityRef}>
+              <button
+                type="button"
                 disabled={!selectedEmirate}
+                onClick={() => {
+                  setIsCityOpen(!isCityOpen);
+                  setIsEmirateOpen(false);
+                }}
+                className="flex items-center justify-between w-full gap-3 text-left text-sm md:text-[14px] font-medium text-white hover:text-[#d4933a] transition-colors duration-200 disabled:opacity-50"
               >
-                <option value="" className="text-black">All Cities</option>
-                {cities
-                  .filter(c => !selectedEmirate || c.emirate_id.toString() === selectedEmirate)
-                  .map((c) => (
-                  <option key={c.id} value={c.id} className="text-black">{c.name}</option>
-                ))}
-              </select>
-              <ChevronDown className="w-4 h-4 ml-2 md:ml-1 text-white/40 pointer-events-none absolute right-4 md:right-4" />
+                <div className="flex items-center gap-2 truncate">
+                  <Target className="w-4 h-4 text-white/50 shrink-0" strokeWidth={1.5} />
+                  <span className="truncate">{currentCityName}</span>
+                </div>
+                <ChevronDown
+                  className={`w-3.5 h-3.5 text-[#888] shrink-0 transition-transform duration-300 ${isCityOpen ? "rotate-180" : ""}`}
+                />
+              </button>
+
+              {isCityOpen && selectedEmirate && (
+                <div className="absolute left-0 right-0 md:left-4 md:right-auto top-full mt-2 md:w-[190px] max-h-[250px] overflow-y-auto rounded-2xl bg-[#1c1c1c] border border-[#333] p-2 shadow-2xl z-50 flex flex-col gap-1 custom-scrollbar">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedCity("");
+                      setIsCityOpen(false);
+                    }}
+                    className={`w-full text-left px-4 py-2.5 text-sm rounded-xl transition-all duration-150 ${selectedCity === ""
+                      ? "bg-[#d4933a]/10 text-[#d4933a] font-medium"
+                      : "text-[#D4D2CD] hover:text-white hover:bg-white/5"
+                      }`}
+                  >
+                    All Cities
+                  </button>
+                  {cities
+                    .filter(c => c.emirate_id.toString() === selectedEmirate)
+                    .map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedCity(c.id.toString());
+                          setIsCityOpen(false);
+                        }}
+                        className={`w-full text-left px-4 py-2.5 text-sm rounded-xl transition-all duration-150 ${selectedCity === c.id.toString()
+                          ? "bg-[#d4933a]/10 text-[#d4933a] font-medium"
+                          : "text-[#D4D2CD] hover:text-white hover:bg-white/5"
+                          }`}
+                      >
+                        {c.name}
+                      </button>
+                    ))}
+                </div>
+              )}
             </div>
 
             <div className="w-full md:w-auto p-1.5 md:p-0 md:ml-2">
@@ -192,9 +281,9 @@ export default function Deals() {
                   {/* Image Carousel */}
                   <div className="relative w-full lg:w-[320px] h-[200px] md:h-[220px] rounded-2xl flex-shrink-0 overflow-hidden shadow-lg">
                     <ImageCarousel
-                      images={deal.service?.images}
-                      imageUrl={deal.service?.image_url}
-                      title={deal.service?.title || "Deal Image"}
+                      images={deal.images}
+                      imageUrl={deal.image_url}
+                      title={deal.title || "Deal Image"}
                       featuredBadge={
                         <div className="bg-white/90 backdrop-blur-sm text-[#22c55e] text-[9px] md:text-[10px] font-bold px-2.5 py-1.5 rounded-[6px] flex items-center gap-1.5 uppercase tracking-wider shadow-sm">
                           <CheckCircle2 className="w-3.5 h-3.5 text-[#22c55e]" strokeWidth={2.5} /> EXCLUSIVE
@@ -206,13 +295,13 @@ export default function Deals() {
                   {/* Content */}
                   <div className="flex flex-col flex-1 py-1">
                     <h2 className="text-white text-lg sm:text-xl md:text-[22px] font-semibold mb-2 md:mb-3 tracking-wide">
-                      {deal.service?.title || "Special Deal"}
+                      {deal.title || "Special Deal"}
                     </h2>
 
                     {/* Tags */}
                     <div className="flex flex-wrap gap-x-2 md:gap-x-3 gap-y-1.5 md:gap-y-2 mb-4 md:mb-6">
                       <span className="text-[#A3A3A3] text-[11px] md:text-[12px] font-light">
-                        {deal.service?.description}
+                        {deal.description}
                       </span>
                     </div>
 
@@ -238,11 +327,11 @@ export default function Deals() {
                     <div className="flex items-center gap-4 md:gap-6 mt-3 md:mt-4 pt-3 md:pt-4">
                       <div className="flex items-center gap-1.5 md:gap-2 text-white/80">
                         <MapPin className="w-3.5 h-3.5 md:w-[14px] md:h-[14px] text-white/50" strokeWidth={2} />
-                        <span className="text-[12px] md:text-[13px] font-medium tracking-wide truncate max-w-[120px] sm:max-w-none">{deal.service?.city?.name || "Dubai"}</span>
+                        <span className="text-[12px] md:text-[13px] font-medium tracking-wide truncate max-w-[120px] sm:max-w-none">{deal.city?.name || "Dubai"}</span>
                       </div>
                       <div className="flex items-center gap-1.5 md:gap-2 text-white/80">
-                        <Calendar className="w-3.5 h-3.5 md:w-[14px] md:h-[14px] text-white/50" strokeWidth={2} />
-                        <span className="text-[12px] md:text-[13px] font-medium tracking-wide">Expires: {new Date(deal.expiry_date).toLocaleDateString()}</span>
+                        <Briefcase className="w-3.5 h-3.5 md:w-[14px] md:h-[14px] text-white/50" strokeWidth={2} />
+                        <span className="text-[12px] md:text-[13px] font-medium tracking-wide">{deal.category?.name || "Service"}</span>
                       </div>
                     </div>
                   </div>
@@ -257,8 +346,8 @@ export default function Deals() {
                       onClick={() => handleContact(deal)}
                       className="w-full bg-[#d4933a] hover:bg-[#c28532] text-white py-2.5 md:py-3 rounded-full font-bold text-[13px] md:text-[14px] transition-colors shadow-lg cursor-pointer"
                      >
-                      Claim Deal
-                    </button>
+                      Contact Now
+                     </button>
                   </div>
                 </div>
 
@@ -273,33 +362,6 @@ export default function Deals() {
       </main>
 
       <Footer />
-
-      {/* Guest blocking overlay */}
-      {checkedAuth && !isLoggedIn && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
-          <div className="bg-[#151515] border border-[#222] rounded-3xl p-8 max-w-md w-full text-center shadow-2xl animate-fade-in text-white">
-            <div className="w-16 h-16 rounded-full bg-[#d4933a]/10 border border-[#d4933a]/30 flex items-center justify-center mx-auto mb-6">
-              <Tag className="w-8 h-8 text-[#d4933a]" />
-            </div>
-            <h2 className="text-2xl font-semibold text-white mb-3 tracking-wide">Login Required</h2>
-            <p className="text-[#888] text-sm leading-relaxed mb-8">
-              Deals list is a premium feature. Please log in or sign up for free to check exclusive deals, discover verified services, and view contact details.
-            </p>
-            <div className="flex flex-col gap-3">
-              <Link href="/login?redirect=/deals">
-                <button className="w-full bg-[#d4933a] hover:bg-[#c28532] text-white py-3.5 rounded-xl font-bold transition-all shadow-[0_0_15px_rgba(212,147,58,0.25)] cursor-pointer">
-                  Log In
-                </button>
-              </Link>
-              <Link href="/register?redirect=/deals">
-                <button className="w-full bg-[#222] border border-[#333] hover:border-[#444] text-[#aaa] hover:text-white py-3.5 rounded-xl font-bold transition-all cursor-pointer">
-                  Register for Free
-                </button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Auth required prompt modal */}
       {showAuthRequiredModal && (
@@ -324,7 +386,7 @@ export default function Deals() {
                   Log In
                 </button>
               </Link>
-              <Link href="/register?redirect=/deals">
+              <Link href="/signup?redirect=/deals">
                 <button className="w-full bg-[#222] border border-[#333] hover:border-[#444] text-[#aaa] hover:text-white py-3.5 rounded-xl font-bold transition-all cursor-pointer">
                   Register for Free
                 </button>

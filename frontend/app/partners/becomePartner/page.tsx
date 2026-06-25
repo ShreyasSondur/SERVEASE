@@ -2,12 +2,14 @@
 
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { ImagePlus, Loader2, CheckCircle2 } from "lucide-react";
+import { ImagePlus, Loader2, CheckCircle2, ChevronDown, MapPin, Target } from "lucide-react";
 import Link from "next/link";
-import React, { useState, useEffect } from "react";
+import Image from "next/image";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
 import axios from "axios";
+import { compressImage } from "@/lib/imageCompressor";
 
 export default function BecomePartner() {
   const router = useRouter();
@@ -25,6 +27,26 @@ export default function BecomePartner() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [hasConsent, setHasConsent] = useState(false);
   const [error, setError] = useState("");
+  const [checkingAuth, setCheckingAuth] = useState(true);
+
+  const emirateRef = useRef<HTMLDivElement>(null);
+  const cityRef = useRef<HTMLDivElement>(null);
+
+  const [isEmirateOpen, setIsEmirateOpen] = useState(false);
+  const [isCityOpen, setIsCityOpen] = useState(false);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (emirateRef.current && !emirateRef.current.contains(event.target as Node)) {
+        setIsEmirateOpen(false);
+      }
+      if (cityRef.current && !cityRef.current.contains(event.target as Node)) {
+        setIsCityOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const [emirates, setEmirates] = useState<any[]>([]);
   const [cities, setCities] = useState<any[]>([]);
@@ -32,14 +54,21 @@ export default function BecomePartner() {
   useEffect(() => {
     const checkRole = async () => {
       try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          setCheckingAuth(false);
+          return;
+        }
         const res = await api.get("/auth/me");
         const role = res.data.role;
         if (role === "PARTNER" || role === "ADMIN") {
           router.push("/partners/dashboard");
+          return;
         }
       } catch (err) {
         console.error("Failed to check auth status on mount", err);
       }
+      setCheckingAuth(false);
     };
     checkRole();
 
@@ -75,8 +104,15 @@ export default function BecomePartner() {
     setError("");
 
     try {
+      let fileToUpload = file;
+      try {
+        fileToUpload = await compressImage(file);
+      } catch (compressErr) {
+        console.warn("Client-side compression failed, uploading original file", compressErr);
+      }
+
       const uploadData = new FormData();
-      uploadData.append("file", file);
+      uploadData.append("file", fileToUpload);
       uploadData.append("upload_preset", uploadPreset);
 
       const res = await axios.post(
@@ -109,6 +145,14 @@ export default function BecomePartner() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.emirate) {
+      setError("Please select your Emirate.");
+      return;
+    }
+    if (!formData.city) {
+      setError("Please select your City.");
+      return;
+    }
     if (!formData.emirates_id_url) {
       setError("Please upload your Emirate ID image.");
       return;
@@ -125,22 +169,37 @@ export default function BecomePartner() {
       setIsSubmitting(false);
     }
   };
+  if (checkingAuth) {
+    return (
+      <div className="relative min-h-screen bg-[#0b0a0a] flex flex-col w-full font-sans">
+        <Navbar />
+        <main className="mt-10 mb-12 flex-grow flex flex-col items-center justify-center pt-24 pb-12 px-4 sm:px-6 relative z-10">
+          <div className="flex flex-col items-center gap-4">
+            <Loader2 className="w-10 h-10 text-[#d4933a] animate-spin" />
+            <span className="text-gray-400 text-sm font-light">Checking authorization...</span>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
   return (
     <div className="relative min-h-screen bg-[#0b0a0a] flex flex-col w-full font-sans">
       <Navbar />
 
-      <main className="mt-10  mb-12 flex-grow flex flex-col items-center justify-center pt-24 pb-12 px-4 sm:px-6 relative z-10">
-        <div className="w-full max-w-2xl">
+      <main className="mt-10 mb-12 flex-grow flex flex-col items-center justify-center pt-24 pb-12 px-3 sm:px-6 relative z-10">
+        <div className="w-full max-w-xl bg-[#131313]/90 border border-[#222] rounded-3xl sm:rounded-[2.5rem] p-5 sm:p-10 shadow-2xl relative">
           {/* Header */}
-          <div className="text-center mb-10">
-            <h1 className="text-2xl sm:text-3xl md:text-[32px] font-serif text-white tracking-wide font-normal mb-1">
+          <div className="text-center mb-8">
+            <h1 className="text-2xl sm:text-[26px] font-serif text-white tracking-wide font-normal mb-2">
               ENTER YOUR DETAILS
             </h1>
-            <p className="text-[#888] text-sm">Join our network of elite service professionals.</p>
+            <p className="text-[#888] text-xs sm:text-sm">Join our network of elite service professionals.</p>
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="flex flex-col gap-3.5 w-full max-w-xl mx-auto">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4 w-full">
             {error && (
               <div className="bg-red-500/10 border border-red-500/50 text-red-500 p-3 rounded-xl text-sm text-center">
                 {error}
@@ -205,17 +264,49 @@ export default function BecomePartner() {
                 <label className="text-[#888] text-[10px] sm:text-[11px] font-semibold tracking-wider uppercase pl-1">
                   Emirates
                 </label>
-                <select 
-                  required
-                  value={formData.emirate}
-                  onChange={(e) => setFormData({ ...formData, emirate: e.target.value, city: "" })}
-                  className="w-full bg-[#1c1c1c] border border-[#2a2a2a] focus:border-[#d4933a] focus:bg-[#222] text-white rounded-xl py-3 px-4 outline-none text-[13px] transition-colors appearance-none cursor-pointer"
-                >
-                  <option value="" disabled className="text-[#666]">Select Emirate</option>
-                  {emirates.map((e) => (
-                    <option key={e.id} value={e.name}>{e.name}</option>
-                  ))}
-                </select>
+                <div className="relative w-full" ref={emirateRef}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsEmirateOpen(!isEmirateOpen);
+                      setIsCityOpen(false);
+                    }}
+                    className="w-full bg-[#1c1c1c] border border-[#2a2a2a] focus:border-[#d4933a] text-white rounded-xl py-3 px-4 outline-none text-[13px] transition-colors flex items-center justify-between cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2 text-left truncate">
+                      <MapPin className="w-4 h-4 text-white/50 shrink-0" strokeWidth={1.5} />
+                      <span className={formData.emirate ? "text-white" : "text-[#777]"}>
+                        {formData.emirate || "Select Emirate"}
+                      </span>
+                    </div>
+                    <ChevronDown className={`w-4 h-4 text-[#888] shrink-0 transition-transform duration-300 ${isEmirateOpen ? "rotate-180" : ""}`} />
+                  </button>
+
+                  {isEmirateOpen && (
+                    <div className="absolute left-0 right-0 top-full mt-2 max-h-[250px] overflow-y-auto rounded-2xl bg-[#1a1a1a] border border-[#333] p-2 shadow-2xl z-50 flex flex-col gap-1 custom-scrollbar">
+                      {emirates.length === 0 ? (
+                        <div className="text-[#666] text-xs py-2 text-center">Loading Emirates...</div>
+                      ) : (
+                        emirates.map((e) => (
+                          <button
+                            key={e.id}
+                            type="button"
+                            onClick={() => {
+                              setFormData({ ...formData, emirate: e.name, city: "" });
+                              setIsEmirateOpen(false);
+                            }}
+                            className={`w-full text-left px-4 py-2.5 text-[13px] rounded-xl transition-all duration-150 ${formData.emirate === e.name
+                              ? "bg-[#d4933a]/10 text-[#d4933a] font-semibold"
+                              : "text-[#D4D2CD] hover:text-white hover:bg-white/5"
+                              }`}
+                          >
+                            {e.name}
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* City */}
@@ -223,23 +314,59 @@ export default function BecomePartner() {
                 <label className="text-[#888] text-[10px] sm:text-[11px] font-semibold tracking-wider uppercase pl-1">
                   City
                 </label>
-                <select 
-                  required
-                  disabled={!formData.emirate}
-                  value={formData.city}
-                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                  className="w-full bg-[#1c1c1c] border border-[#2a2a2a] focus:border-[#d4933a] focus:bg-[#222] text-white rounded-xl py-3 px-4 outline-none text-[13px] transition-colors appearance-none cursor-pointer disabled:opacity-50"
-                >
-                  <option value="" disabled className="text-[#666]">Select City</option>
-                  {cities
-                    .filter(c => {
-                      const em = emirates.find(e => e.name === formData.emirate);
-                      return em && c.emirate_id === em.id;
-                    })
-                    .map((c) => (
-                      <option key={c.id} value={c.name}>{c.name}</option>
-                  ))}
-                </select>
+                <div className="relative w-full" ref={cityRef}>
+                  <button
+                    type="button"
+                    disabled={!formData.emirate}
+                    onClick={() => {
+                      setIsCityOpen(!isCityOpen);
+                      setIsEmirateOpen(false);
+                    }}
+                    className="w-full bg-[#1c1c1c] border border-[#2a2a2a] focus:border-[#d4933a] text-white rounded-xl py-3 px-4 outline-none text-[13px] transition-colors flex items-center justify-between cursor-pointer disabled:opacity-50"
+                  >
+                    <div className="flex items-center gap-2 text-left truncate">
+                      <Target className="w-4 h-4 text-white/50 shrink-0" strokeWidth={1.5} />
+                      <span className={formData.city ? "text-white" : "text-[#777]"}>
+                        {formData.city || "Select City"}
+                      </span>
+                    </div>
+                    <ChevronDown className={`w-4 h-4 text-[#888] shrink-0 transition-transform duration-300 ${isCityOpen ? "rotate-180" : ""}`} />
+                  </button>
+
+                  {isCityOpen && formData.emirate && (
+                    <div className="absolute left-0 right-0 top-full mt-2 max-h-[250px] overflow-y-auto rounded-2xl bg-[#1a1a1a] border border-[#333] p-2 shadow-2xl z-50 flex flex-col gap-1 custom-scrollbar">
+                      {cities
+                        .filter(c => {
+                          const em = emirates.find(e => e.name === formData.emirate);
+                          return em && c.emirate_id === em.id;
+                        }).length === 0 ? (
+                          <div className="text-[#666] text-xs py-2 text-center">No cities found</div>
+                        ) : (
+                          cities
+                            .filter(c => {
+                              const em = emirates.find(e => e.name === formData.emirate);
+                              return em && c.emirate_id === em.id;
+                            })
+                            .map((c) => (
+                              <button
+                                key={c.id}
+                                type="button"
+                                onClick={() => {
+                                  setFormData({ ...formData, city: c.name });
+                                  setIsCityOpen(false);
+                                }}
+                                className={`w-full text-left px-4 py-2.5 text-[13px] rounded-xl transition-all duration-150 ${formData.city === c.name
+                                  ? "bg-[#d4933a]/10 text-[#d4933a] font-semibold"
+                                  : "text-[#D4D2CD] hover:text-white hover:bg-white/5"
+                                  }`}
+                              >
+                                {c.name}
+                              </button>
+                            ))
+                        )}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -264,7 +391,7 @@ export default function BecomePartner() {
                 Emirate ID
               </label>
               {formData.emirates_id_url ? (
-                <div className="w-full bg-[#16221f] border border-emerald-500/20 rounded-xl p-4 flex items-center justify-between gap-4 transition-all duration-300">
+                <div className="w-full bg-[#16221f] border border-emerald-500/20 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all duration-300">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center shrink-0">
                       <CheckCircle2 className="w-5 h-5 text-emerald-400" />
@@ -274,17 +401,19 @@ export default function BecomePartner() {
                       <p className="text-[#888] text-[11px]">Your document is ready for submission.</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3 shrink-0">
+                  <div className="flex items-center gap-3 shrink-0 w-full sm:w-auto justify-end sm:justify-start">
                     <a 
                       href={formData.emirates_id_url} 
                       target="_blank" 
                       rel="noopener noreferrer" 
                       className="group relative cursor-pointer block"
                     >
-                      <img 
+                      <Image 
                         src={formData.emirates_id_url} 
                         alt="Emirate ID Thumbnail" 
-                        className="w-14 h-10 object-cover rounded-lg border border-[#333] group-hover:border-[#d4933a] transition-all" 
+                        width={56}
+                        height={40}
+                        className="object-cover rounded-lg border border-[#333] group-hover:border-[#d4933a] transition-all" 
                       />
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
                         <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">

@@ -11,6 +11,12 @@ def migrate():
     except sqlite3.OperationalError as e:
         print(f"Migration error or already applied for services.images: {e}")
         
+    try:
+        cursor.execute("ALTER TABLE deals ADD COLUMN images JSON DEFAULT '[]'")
+        print("Successfully added 'images' column to 'deals' table.")
+    except sqlite3.OperationalError as e:
+        print(f"Migration error or already applied for deals.images: {e}")
+        
     # New migration for users table
     try:
         cursor.execute("ALTER TABLE users ADD COLUMN full_name VARCHAR")

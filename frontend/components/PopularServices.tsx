@@ -65,31 +65,31 @@ export default function PopularServices() {
                     {services.map((service) => (
                         <div
                             key={service.id}
-                            className="rounded-2xl border border-[#D08931]/30 overflow-hidden flex flex-row h-[200px] sm:h-[220px] lg:h-[260px] bg-[#111111] hover:border-[#D08931]/60 transition-colors duration-300"
+                            className="rounded-2xl border border-[#D08931]/30 overflow-hidden flex flex-col sm:flex-row h-auto sm:h-[220px] lg:h-[260px] bg-[#111111] hover:border-[#D08931]/60 transition-colors duration-300"
                         >
                             {/* Left Image Section */}
-                            <div className="w-[55%] sm:w-[60%] relative h-full shrink-0">
+                            <div className="w-full h-[160px] sm:w-[60%] sm:h-full relative shrink-0">
                                 <Image
                                     src={service.image}
                                     alt={service.title}
                                     fill
                                     className="object-cover"
-                                    sizes="(max-width: 640px) 55vw, (max-width: 1024px) 30vw, 20vw"
+                                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 30vw, 20vw"
                                 />
                             </div>
 
                             {/* Right Content Section */}
-                            <div className="w-[45%] sm:w-[40%] p-3 sm:p-4 flex flex-col justify-center items-center text-center relative">
+                            <div className="w-full sm:w-[40%] p-5 sm:p-4 flex flex-col justify-center items-center text-center relative min-h-[160px] sm:min-h-0">
                                 <div className="flex flex-col items-center justify-center w-full">
                                     {service.icon}
                                     <h3 className="text-white font-serif text-sm sm:text-base lg:text-xl mb-1 lg:mb-2">
                                         {service.title}
                                     </h3>
-                                    <p className="text-gray-400 text-[10px] sm:text-[11px] lg:text-[13px] leading-relaxed max-w-[120px] sm:max-w-[140px] lg:max-w-[160px]">
+                                    <p className="text-gray-400 text-[10px] sm:text-[11px] lg:text-[13px] leading-relaxed max-w-[140px] lg:max-w-[160px]">
                                         {service.description}
                                     </p>
                                 </div>
-                                <div className="absolute bottom-3 right-3 sm:bottom-4 sm:right-4 lg:bottom-5 lg:right-5">
+                                <div className="absolute bottom-3 right-4 sm:bottom-4 sm:right-4 lg:bottom-5 lg:right-5">
                                     <button className="text-[#D08931] text-[10px] sm:text-[11px] lg:text-[13px] flex items-center hover:opacity-80 transition-opacity group">
                                         Search
                                         <ArrowRight className="ml-1 w-2.5 h-2.5 sm:w-3 sm:h-3 lg:w-3.5 lg:h-3.5 transition-transform group-hover:translate-x-1" />

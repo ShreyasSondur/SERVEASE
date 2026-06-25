@@ -3,9 +3,11 @@
 import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { Briefcase, Tag, Calendar, Pencil, Trash2, Plus, ArrowRight, X, Upload } from "lucide-react";
+import { Briefcase, Tag, Calendar, Pencil, Trash2, Plus, ArrowRight, X, Upload, Loader2 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import api from "@/lib/api";
+import { compressImage } from "@/lib/imageCompressor";
 
 export default function Dashboard() {
   const [profile, setProfile] = useState<any>(null);
@@ -111,6 +113,14 @@ export default function Dashboard() {
     }
   };
 
+  const parseImages = (images: any) => {
+    if (Array.isArray(images)) return images;
+    if (typeof images === 'string') {
+      try { return JSON.parse(images); } catch(e) { return [images]; }
+    }
+    return [];
+  };
+
   const handleImageUploadGeneric = async (
     files: File[], 
     currentList: string[], 
@@ -134,8 +144,15 @@ export default function Dashboard() {
 
     try {
       for (const file of files) {
+        let fileToUpload = file;
+        try {
+          fileToUpload = await compressImage(file);
+        } catch (compressErr) {
+          console.warn("Client-side compression failed, uploading original file", compressErr);
+        }
+
         const formData = new FormData();
-        formData.append("file", file);
+        formData.append("file", fileToUpload);
         formData.append("upload_preset", uploadPreset);
 
         const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
@@ -196,7 +213,7 @@ export default function Dashboard() {
       emergency_service: service.emergency_service || "Available 24/7",
       provider_type: service.provider_type || "Licensed Company"
     });
-    setEditImages(service.images || []);
+    setEditImages(parseImages(service.images));
     
     const matchedCity = cities.find(c => c.id === service.city_id);
     if (matchedCity) {
@@ -297,7 +314,15 @@ export default function Dashboard() {
   ];
 
   if (!userRole) {
-    return <div className="min-h-screen bg-[#0b0a0a] text-[#888] flex items-center justify-center font-sans">Checking authorization...</div>;
+    return (
+      <div className="relative min-h-screen bg-[#0b0a0a] flex flex-col w-full font-sans text-white">
+        <Navbar />
+        <div className="flex-grow flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#d4933a]"></div>
+        </div>
+        <Footer />
+      </div>
+    );
   }
 
   return (
@@ -374,12 +399,12 @@ export default function Dashboard() {
                 <div key={deal.id} className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-2xl flex flex-col sm:flex-row overflow-hidden group hover:border-[#d4933a]/50 transition-colors shadow-lg">
                   {/* Content */}
                   <div className="flex flex-col flex-1 p-5 sm:p-6">
-                    <h3 className="font-medium text-[16px] mb-1.5 text-white">{deal.service?.title || "Special Deal"}</h3>
+                    <h3 className="font-medium text-[16px] mb-1.5 text-white">{deal.title || "Special Deal"}</h3>
                     <p className="text-[#aaa] text-xs sm:text-[13px] mb-4 leading-relaxed font-light">{deal.discount_desc}</p>
                     
                     <div className="flex items-center gap-2 mb-6 text-[#d4933a] text-xs font-medium bg-[#d4933a]/5 w-fit px-3 py-1.5 rounded-lg border border-[#d4933a]/10">
-                      <Calendar className="w-3.5 h-3.5" />
-                      <span>Valid till {new Date(deal.expiry_date).toLocaleDateString()}</span>
+                      <Briefcase className="w-3.5 h-3.5" />
+                      <span>{deal.category?.name || "Service"}</span>
                     </div>
 
                     <div className="mt-auto border-t border-[#2a2a2a] pt-4 flex items-center justify-between">
@@ -423,8 +448,14 @@ export default function Dashboard() {
                 <div key={service.id} className="bg-[#151515] border border-[#222] hover:border-[#d4933a]/50 rounded-[2rem] overflow-hidden flex flex-col shadow-lg hover:shadow-xl transition-all duration-300 group">
                   {/* Service Image */}
                   <div className="relative w-full h-[200px] bg-[#1a1a1a] overflow-hidden">
-                    {service.images && service.images.length > 0 ? (
-                      <img src={service.images[0]} alt={service.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                    {parseImages(service.images).length > 0 ? (
+                      <Image 
+                        src={parseImages(service.images)[0]} 
+                        alt={service.title} 
+                        fill
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                        className="object-cover transition-transform duration-500 group-hover:scale-105" 
+                      />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-xs text-[#555] bg-[#111]">No Image</div>
                     )}
@@ -475,70 +506,119 @@ export default function Dashboard() {
       {/* Add Service Modal */}
       {showServiceModal && (
         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-          <div className="bg-[#111] border border-[#333] rounded-3xl p-6 w-full max-w-md relative text-white animate-fade-in shadow-2xl">
+          <div className="bg-[#131313] border border-[#222] rounded-[2rem] p-6 sm:p-8 w-full max-w-xl relative text-white animate-fade-in shadow-2xl overflow-y-auto max-h-[90vh] custom-scrollbar">
             <button onClick={() => {
               setShowServiceModal(false);
               setImages([]);
               setServiceForm({ title: "", description: "", category_id: "", city_id: "", emergency_service: "Available 24/7", provider_type: "Licensed Company" });
               setFormError("");
-            }} className="absolute top-4 right-4 text-[#888] hover:text-white cursor-pointer"><X /></button>
-            <h2 className="text-xl font-bold mb-4 tracking-wide text-white">Add New Service</h2>
-            {formError && <div className="text-red-500 text-sm mb-4">{formError}</div>}
-            <form onSubmit={handleAddService} className="flex flex-col gap-4">
-              <input required placeholder="Listing Title" value={serviceForm.title} onChange={e => setServiceForm({...serviceForm, title: e.target.value})} className="bg-[#1a1a1a] border border-[#333] rounded-xl px-4 py-3 text-white outline-none focus:border-[#d4933a] text-sm" />
-              <textarea required placeholder="Description" value={serviceForm.description} onChange={e => setServiceForm({...serviceForm, description: e.target.value})} className="bg-[#1a1a1a] border border-[#333] rounded-xl px-4 py-3 text-white outline-none focus:border-[#d4933a] min-h-[100px] text-sm" />
+            }} className="absolute top-5 right-5 text-gray-500 hover:text-white transition-colors cursor-pointer"><X className="w-5 h-5" /></button>
+            
+            <div className="mb-6">
+              <h2 className="text-xl sm:text-2xl font-serif text-white tracking-wide font-normal">Add New Service</h2>
+              <p className="text-[#888] text-xs sm:text-sm mt-1">Create a service listing to attract clients.</p>
+            </div>
+            
+            {formError && (
+              <div className="bg-red-500/10 border border-red-500/30 text-red-500 p-3.5 rounded-xl text-xs text-center mb-6">
+                {formError}
+              </div>
+            )}
+            
+            <form onSubmit={handleAddService} className="flex flex-col gap-5">
               
-              <select required value={serviceForm.category_id} onChange={e => setServiceForm({...serviceForm, category_id: e.target.value})} className="bg-[#1a1a1a] border border-[#333] rounded-xl px-4 py-3 text-[#aaa] outline-none focus:border-[#d4933a] text-sm">
-                <option value="">Select Global Service...</option>
-                {categories.map(c => <option key={c.id} value={c.id} className="text-white">{c.name}</option>)}
-              </select>
-
-              <select value={selectedEmirate} onChange={e => {
-                setSelectedEmirate(e.target.value);
-                setServiceForm({...serviceForm, city_id: ""});
-              }} className="bg-[#1a1a1a] border border-[#333] rounded-xl px-4 py-3 text-[#aaa] outline-none focus:border-[#d4933a] text-sm">
-                <option value="">Select Emirate...</option>
-                {emirates.map(e => <option key={e.id} value={e.id} className="text-white">{e.name}</option>)}
-              </select>
-
-              <select required disabled={!selectedEmirate} value={serviceForm.city_id} onChange={e => setServiceForm({...serviceForm, city_id: e.target.value})} className="bg-[#1a1a1a] border border-[#333] rounded-xl px-4 py-3 text-[#aaa] outline-none focus:border-[#d4933a] disabled:opacity-50 text-sm">
-                <option value="">Select City...</option>
-                {cities.filter(c => c.emirate_id.toString() === selectedEmirate).map(c => <option key={c.id} value={c.id} className="text-white">{c.name}</option>)}
-              </select>
-
-              <select required value={serviceForm.emergency_service} onChange={e => setServiceForm({...serviceForm, emergency_service: e.target.value})} className="bg-[#1a1a1a] border border-[#333] rounded-xl px-4 py-3 text-[#aaa] outline-none focus:border-[#d4933a] text-sm">
-                <option value="Available 24/7">Emergency Service: Available 24/7</option>
-                <option value="During business hours only">Emergency Service: During business hours only</option>
-                <option value="Not available">Emergency Service: Not available</option>
-              </select>
-
-              <select required value={serviceForm.provider_type} onChange={e => setServiceForm({...serviceForm, provider_type: e.target.value})} className="bg-[#1a1a1a] border border-[#333] rounded-xl px-4 py-3 text-[#aaa] outline-none focus:border-[#d4933a] text-sm">
-                <option value="Licensed Company">Provider Type: Licensed Company</option>
-                <option value="Freelancer">Provider Type: Freelancer</option>
-                <option value="Individual Professional">Provider Type: Individual Professional</option>
-              </select>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[#888] text-[10px] sm:text-[11px] font-semibold tracking-wider uppercase pl-1">Listing Title</label>
+                <input required placeholder="e.g. Premium Bedroom AC Deep Cleaning" value={serviceForm.title} onChange={e => setServiceForm({...serviceForm, title: e.target.value})} className="w-full bg-[#1c1c1c] border border-[#2a2a2a] focus:border-[#d4933a] focus:bg-[#222] text-white rounded-xl py-3.5 px-4 outline-none text-[13px] transition-colors focus:ring-0" />
+              </div>
               
-              <div className="border border-dashed border-[#333] p-4 rounded-xl bg-[#1a1a1a] text-center flex flex-col items-center gap-1">
-                <input 
-                  type="file" 
-                  multiple 
-                  accept="image/*" 
-                  onChange={(e) => {
-                    if (e.target.files) handleImageUploadGeneric(Array.from(e.target.files), images, setImages);
-                  }} 
-                  className="hidden" 
-                  id="image-upload" 
-                />
-                <label htmlFor="image-upload" className="cursor-pointer text-[#d4933a] hover:underline text-sm font-semibold flex items-center gap-1">
-                  <Upload className="w-4 h-4" /> {uploadingImages ? "Uploading..." : `Upload Images (${images.length}/4)`}
-                </label>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[#888] text-[10px] sm:text-[11px] font-semibold tracking-wider uppercase pl-1">Description</label>
+                <textarea required placeholder="Outline the service scope, tools, warranty, and pricing details..." value={serviceForm.description} onChange={e => setServiceForm({...serviceForm, description: e.target.value})} className="w-full bg-[#1c1c1c] border border-[#2a2a2a] focus:border-[#d4933a] focus:bg-[#222] text-white rounded-xl py-3.5 px-4 outline-none text-[13px] transition-colors focus:ring-0 min-h-[100px]" />
+              </div>
+              
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[#888] text-[10px] sm:text-[11px] font-semibold tracking-wider uppercase pl-1">Global Service Category</label>
+                <select required value={serviceForm.category_id} onChange={e => setServiceForm({...serviceForm, category_id: e.target.value})} className="w-full bg-[#1c1c1c] border border-[#2a2a2a] focus:border-[#d4933a] focus:bg-[#222] text-[#aaa] rounded-xl py-3.5 px-4 outline-none text-[13px] transition-colors focus:ring-0">
+                  <option value="" className="bg-[#131313]">Select Service Category...</option>
+                  {categories.map(c => <option key={c.id} value={c.id} className="bg-[#131313] text-white">{c.name}</option>)}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[#888] text-[10px] sm:text-[11px] font-semibold tracking-wider uppercase pl-1">Emirate</label>
+                  <select value={selectedEmirate} onChange={e => {
+                    setSelectedEmirate(e.target.value);
+                    setServiceForm({...serviceForm, city_id: ""});
+                  }} className="w-full bg-[#1c1c1c] border border-[#2a2a2a] focus:border-[#d4933a] focus:bg-[#222] text-[#aaa] rounded-xl py-3.5 px-4 outline-none text-[13px] transition-colors focus:ring-0">
+                    <option value="" className="bg-[#131313]">Select Emirate...</option>
+                    {emirates.map(e => <option key={e.id} value={e.id} className="bg-[#131313] text-white">{e.name}</option>)}
+                  </select>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[#888] text-[10px] sm:text-[11px] font-semibold tracking-wider uppercase pl-1">City / Area</label>
+                  <select required disabled={!selectedEmirate} value={serviceForm.city_id} onChange={e => setServiceForm({...serviceForm, city_id: e.target.value})} className="w-full bg-[#1c1c1c] border border-[#2a2a2a] focus:border-[#d4933a] focus:bg-[#222] text-[#aaa] rounded-xl py-3.5 px-4 outline-none text-[13px] transition-colors focus:ring-0 disabled:opacity-50">
+                    <option value="" className="bg-[#131313]">Select City...</option>
+                    {cities.filter(c => c.emirate_id.toString() === selectedEmirate).map(c => <option key={c.id} value={c.id} className="bg-[#131313] text-white">{c.name}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[#888] text-[10px] sm:text-[11px] font-semibold tracking-wider uppercase pl-1">Emergency Availability</label>
+                  <select required value={serviceForm.emergency_service} onChange={e => setServiceForm({...serviceForm, emergency_service: e.target.value})} className="w-full bg-[#1c1c1c] border border-[#2a2a2a] focus:border-[#d4933a] focus:bg-[#222] text-[#aaa] rounded-xl py-3.5 px-4 outline-none text-[13px] transition-colors focus:ring-0">
+                    <option value="Available 24/7" className="bg-[#131313]">Available 24/7</option>
+                    <option value="During business hours only" className="bg-[#131313]">During business hours only</option>
+                    <option value="Not available" className="bg-[#131313]">Not available</option>
+                  </select>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[#888] text-[10px] sm:text-[11px] font-semibold tracking-wider uppercase pl-1">Provider Type</label>
+                  <select required value={serviceForm.provider_type} onChange={e => setServiceForm({...serviceForm, provider_type: e.target.value})} className="w-full bg-[#1c1c1c] border border-[#2a2a2a] focus:border-[#d4933a] focus:bg-[#222] text-[#aaa] rounded-xl py-3.5 px-4 outline-none text-[13px] transition-colors focus:ring-0">
+                    <option value="Licensed Company" className="bg-[#131313]">Licensed Company</option>
+                    <option value="Freelancer" className="bg-[#131313]">Freelancer</option>
+                    <option value="Individual Professional" className="bg-[#131313]">Individual Professional</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div className="flex flex-col gap-1.5 mt-1">
+                <label className="text-[#888] text-[10px] sm:text-[11px] font-semibold tracking-wider uppercase pl-1">Service Images (Max 4)</label>
+                <div className="relative w-full border-2 border-dashed border-[#2a2a2a] hover:border-[#d4933a] bg-[#1c1c1c] rounded-xl py-6 flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors group overflow-hidden">
+                  {uploadingImages ? (
+                    <div className="flex items-center gap-2 text-[#d4933a] text-xs font-semibold uppercase">
+                      <Loader2 className="w-4 h-4 animate-spin" /> Uploading...
+                    </div>
+                  ) : (
+                    <>
+                      <Upload className="w-5 h-5 text-[#888] group-hover:text-[#d4933a] transition-colors" />
+                      <span className="text-[#666] text-[11px] font-semibold uppercase tracking-wider group-hover:text-[#d4933a] transition-colors">
+                        {images.length > 0 ? `Upload More Images (${images.length}/4)` : "Upload Images"}
+                      </span>
+                    </>
+                  )}
+                  <input 
+                    type="file" 
+                    multiple 
+                    accept="image/*" 
+                    onChange={(e) => {
+                      if (e.target.files) handleImageUploadGeneric(Array.from(e.target.files), images, setImages);
+                    }} 
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
+                    disabled={uploadingImages}
+                  />
+                </div>
               </div>
               {images.length > 0 && (
-                <div className="flex gap-2 flex-wrap mt-2">
+                <div className="grid grid-cols-4 gap-3 mt-1">
                   {images.map((img, idx) => (
-                    <div key={idx} className="relative w-16 h-16 rounded overflow-hidden border border-[#333]">
+                    <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-[#2a2a2a] group/thumb">
                       <img src={img} alt="preview" className="w-full h-full object-cover" />
-                      <button type="button" onClick={() => setImages(images.filter((_, i) => i !== idx))} className="absolute top-1 right-1 bg-black/70 rounded-full p-0.5 hover:bg-red-500/80 text-white"><X className="w-3.5 h-3.5" /></button>
+                      <button type="button" onClick={() => setImages(images.filter((_, i) => i !== idx))} className="absolute top-1 right-1 bg-black/85 hover:bg-red-500 text-white rounded-full p-1 transition-colors cursor-pointer"><X className="w-3 h-3" /></button>
                     </div>
                   ))}
                 </div>
@@ -553,70 +633,119 @@ export default function Dashboard() {
       {/* Edit Service Modal */}
       {showEditServiceModal && (
         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-          <div className="bg-[#111] border border-[#333] rounded-3xl p-6 w-full max-w-md relative text-white animate-fade-in shadow-2xl">
+          <div className="bg-[#131313] border border-[#222] rounded-[2rem] p-6 sm:p-8 w-full max-w-xl relative text-white animate-fade-in shadow-2xl overflow-y-auto max-h-[90vh] custom-scrollbar">
             <button onClick={() => {
               setShowEditServiceModal(false);
               setEditingServiceId(null);
               setEditImages([]);
               setFormError("");
-            }} className="absolute top-4 right-4 text-[#888] hover:text-white cursor-pointer"><X /></button>
-            <h2 className="text-xl font-bold mb-4 tracking-wide text-white">Edit Service</h2>
-            {formError && <div className="text-red-500 text-sm mb-4">{formError}</div>}
-            <form onSubmit={handleEditService} className="flex flex-col gap-4">
-              <input required placeholder="Listing Title" value={editServiceForm.title} onChange={e => setEditServiceForm({...editServiceForm, title: e.target.value})} className="bg-[#1a1a1a] border border-[#333] rounded-xl px-4 py-3 text-white outline-none focus:border-[#d4933a] text-sm" />
-              <textarea required placeholder="Description" value={editServiceForm.description} onChange={e => setEditServiceForm({...editServiceForm, description: e.target.value})} className="bg-[#1a1a1a] border border-[#333] rounded-xl px-4 py-3 text-white outline-none focus:border-[#d4933a] min-h-[100px] text-sm" />
+            }} className="absolute top-5 right-5 text-gray-500 hover:text-white transition-colors cursor-pointer"><X className="w-5 h-5" /></button>
+            
+            <div className="mb-6">
+              <h2 className="text-xl sm:text-2xl font-serif text-white tracking-wide font-normal">Edit Service</h2>
+              <p className="text-[#888] text-xs sm:text-sm mt-1">Modify your service listing details.</p>
+            </div>
+            
+            {formError && (
+              <div className="bg-red-500/10 border border-red-500/30 text-red-500 p-3.5 rounded-xl text-xs text-center mb-6">
+                {formError}
+              </div>
+            )}
+            
+            <form onSubmit={handleEditService} className="flex flex-col gap-5">
               
-              <select required value={editServiceForm.category_id} onChange={e => setEditServiceForm({...editServiceForm, category_id: e.target.value})} className="bg-[#1a1a1a] border border-[#333] rounded-xl px-4 py-3 text-[#aaa] outline-none focus:border-[#d4933a] text-sm">
-                <option value="">Select Global Service...</option>
-                {categories.map(c => <option key={c.id} value={c.id} className="text-white">{c.name}</option>)}
-              </select>
-
-              <select value={selectedEditEmirate} onChange={e => {
-                setSelectedEditEmirate(e.target.value);
-                setEditServiceForm({...editServiceForm, city_id: ""});
-              }} className="bg-[#1a1a1a] border border-[#333] rounded-xl px-4 py-3 text-[#aaa] outline-none focus:border-[#d4933a] text-sm">
-                <option value="">Select Emirate...</option>
-                {emirates.map(e => <option key={e.id} value={e.id} className="text-white">{e.name}</option>)}
-              </select>
-
-              <select required disabled={!selectedEditEmirate} value={editServiceForm.city_id} onChange={e => setEditServiceForm({...editServiceForm, city_id: e.target.value})} className="bg-[#1a1a1a] border border-[#333] rounded-xl px-4 py-3 text-[#aaa] outline-none focus:border-[#d4933a] disabled:opacity-50 text-sm">
-                <option value="">Select City...</option>
-                {cities.filter(c => c.emirate_id.toString() === selectedEditEmirate).map(c => <option key={c.id} value={c.id} className="text-white">{c.name}</option>)}
-              </select>
-
-              <select required value={editServiceForm.emergency_service} onChange={e => setEditServiceForm({...editServiceForm, emergency_service: e.target.value})} className="bg-[#1a1a1a] border border-[#333] rounded-xl px-4 py-3 text-[#aaa] outline-none focus:border-[#d4933a] text-sm">
-                <option value="Available 24/7">Emergency Service: Available 24/7</option>
-                <option value="During business hours only">Emergency Service: During business hours only</option>
-                <option value="Not available">Emergency Service: Not available</option>
-              </select>
-
-              <select required value={editServiceForm.provider_type} onChange={e => setEditServiceForm({...editServiceForm, provider_type: e.target.value})} className="bg-[#1a1a1a] border border-[#333] rounded-xl px-4 py-3 text-[#aaa] outline-none focus:border-[#d4933a] text-sm">
-                <option value="Licensed Company">Provider Type: Licensed Company</option>
-                <option value="Freelancer">Provider Type: Freelancer</option>
-                <option value="Individual Professional">Provider Type: Individual Professional</option>
-              </select>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[#888] text-[10px] sm:text-[11px] font-semibold tracking-wider uppercase pl-1">Listing Title</label>
+                <input required placeholder="e.g. Premium Bedroom AC Deep Cleaning" value={editServiceForm.title} onChange={e => setEditServiceForm({...editServiceForm, title: e.target.value})} className="w-full bg-[#1c1c1c] border border-[#2a2a2a] focus:border-[#d4933a] focus:bg-[#222] text-white rounded-xl py-3.5 px-4 outline-none text-[13px] transition-colors focus:ring-0" />
+              </div>
               
-              <div className="border border-dashed border-[#333] p-4 rounded-xl bg-[#1a1a1a] text-center flex flex-col items-center gap-1">
-                <input 
-                  type="file" 
-                  multiple 
-                  accept="image/*" 
-                  onChange={(e) => {
-                    if (e.target.files) handleImageUploadGeneric(Array.from(e.target.files), editImages, setEditImages);
-                  }} 
-                  className="hidden" 
-                  id="edit-image-upload" 
-                />
-                <label htmlFor="edit-image-upload" className="cursor-pointer text-[#d4933a] hover:underline text-sm font-semibold flex items-center gap-1">
-                  <Upload className="w-4 h-4" /> {uploadingImages ? "Uploading..." : `Upload Images (${editImages.length}/4)`}
-                </label>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[#888] text-[10px] sm:text-[11px] font-semibold tracking-wider uppercase pl-1">Description</label>
+                <textarea required placeholder="Outline the service scope, tools, warranty, and pricing details..." value={editServiceForm.description} onChange={e => setEditServiceForm({...editServiceForm, description: e.target.value})} className="w-full bg-[#1c1c1c] border border-[#2a2a2a] focus:border-[#d4933a] focus:bg-[#222] text-white rounded-xl py-3.5 px-4 outline-none text-[13px] transition-colors focus:ring-0 min-h-[100px]" />
+              </div>
+              
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[#888] text-[10px] sm:text-[11px] font-semibold tracking-wider uppercase pl-1">Global Service Category</label>
+                <select required value={editServiceForm.category_id} onChange={e => setEditServiceForm({...editServiceForm, category_id: e.target.value})} className="w-full bg-[#1c1c1c] border border-[#2a2a2a] focus:border-[#d4933a] focus:bg-[#222] text-[#aaa] rounded-xl py-3.5 px-4 outline-none text-[13px] transition-colors focus:ring-0">
+                  <option value="" className="bg-[#131313]">Select Service Category...</option>
+                  {categories.map(c => <option key={c.id} value={c.id} className="bg-[#131313] text-white">{c.name}</option>)}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[#888] text-[10px] sm:text-[11px] font-semibold tracking-wider uppercase pl-1">Emirate</label>
+                  <select value={selectedEditEmirate} onChange={e => {
+                    setSelectedEditEmirate(e.target.value);
+                    setEditServiceForm({...editServiceForm, city_id: ""});
+                  }} className="w-full bg-[#1c1c1c] border border-[#2a2a2a] focus:border-[#d4933a] focus:bg-[#222] text-[#aaa] rounded-xl py-3.5 px-4 outline-none text-[13px] transition-colors focus:ring-0">
+                    <option value="" className="bg-[#131313]">Select Emirate...</option>
+                    {emirates.map(e => <option key={e.id} value={e.id} className="bg-[#131313] text-white">{e.name}</option>)}
+                  </select>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[#888] text-[10px] sm:text-[11px] font-semibold tracking-wider uppercase pl-1">City / Area</label>
+                  <select required disabled={!selectedEditEmirate} value={editServiceForm.city_id} onChange={e => setEditServiceForm({...editServiceForm, city_id: e.target.value})} className="w-full bg-[#1c1c1c] border border-[#2a2a2a] focus:border-[#d4933a] focus:bg-[#222] text-[#aaa] rounded-xl py-3.5 px-4 outline-none text-[13px] transition-colors focus:ring-0 disabled:opacity-50">
+                    <option value="" className="bg-[#131313]">Select City...</option>
+                    {cities.filter(c => c.emirate_id.toString() === selectedEditEmirate).map(c => <option key={c.id} value={c.id} className="bg-[#131313] text-white">{c.name}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[#888] text-[10px] sm:text-[11px] font-semibold tracking-wider uppercase pl-1">Emergency Availability</label>
+                  <select required value={editServiceForm.emergency_service} onChange={e => setEditServiceForm({...editServiceForm, emergency_service: e.target.value})} className="w-full bg-[#1c1c1c] border border-[#2a2a2a] focus:border-[#d4933a] focus:bg-[#222] text-[#aaa] rounded-xl py-3.5 px-4 outline-none text-[13px] transition-colors focus:ring-0">
+                    <option value="Available 24/7" className="bg-[#131313]">Available 24/7</option>
+                    <option value="During business hours only" className="bg-[#131313]">During business hours only</option>
+                    <option value="Not available" className="bg-[#131313]">Not available</option>
+                  </select>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[#888] text-[10px] sm:text-[11px] font-semibold tracking-wider uppercase pl-1">Provider Type</label>
+                  <select required value={editServiceForm.provider_type} onChange={e => setEditServiceForm({...editServiceForm, provider_type: e.target.value})} className="w-full bg-[#1c1c1c] border border-[#2a2a2a] focus:border-[#d4933a] focus:bg-[#222] text-[#aaa] rounded-xl py-3.5 px-4 outline-none text-[13px] transition-colors focus:ring-0">
+                    <option value="Licensed Company" className="bg-[#131313]">Licensed Company</option>
+                    <option value="Freelancer" className="bg-[#131313]">Freelancer</option>
+                    <option value="Individual Professional" className="bg-[#131313]">Individual Professional</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div className="flex flex-col gap-1.5 mt-1">
+                <label className="text-[#888] text-[10px] sm:text-[11px] font-semibold tracking-wider uppercase pl-1">Service Images (Max 4)</label>
+                <div className="relative w-full border-2 border-dashed border-[#2a2a2a] hover:border-[#d4933a] bg-[#1c1c1c] rounded-xl py-6 flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors group overflow-hidden">
+                  {uploadingImages ? (
+                    <div className="flex items-center gap-2 text-[#d4933a] text-xs font-semibold uppercase">
+                      <Loader2 className="w-4 h-4 animate-spin" /> Uploading...
+                    </div>
+                  ) : (
+                    <>
+                      <Upload className="w-5 h-5 text-[#888] group-hover:text-[#d4933a] transition-colors" />
+                      <span className="text-[#666] text-[11px] font-semibold uppercase tracking-wider group-hover:text-[#d4933a] transition-colors">
+                        {editImages.length > 0 ? `Upload More Images (${editImages.length}/4)` : "Upload Images"}
+                      </span>
+                    </>
+                  )}
+                  <input 
+                    type="file" 
+                    multiple 
+                    accept="image/*" 
+                    onChange={(e) => {
+                      if (e.target.files) handleImageUploadGeneric(Array.from(e.target.files), editImages, setEditImages);
+                    }} 
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
+                    disabled={uploadingImages}
+                  />
+                </div>
               </div>
               {editImages.length > 0 && (
-                <div className="flex gap-2 flex-wrap mt-2">
+                <div className="grid grid-cols-4 gap-3 mt-1">
                   {editImages.map((img, idx) => (
-                    <div key={idx} className="relative w-16 h-16 rounded overflow-hidden border border-[#333]">
+                    <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-[#2a2a2a] group/thumb">
                       <img src={img} alt="preview" className="w-full h-full object-cover" />
-                      <button type="button" onClick={() => setEditImages(editImages.filter((_, i) => i !== idx))} className="absolute top-1 right-1 bg-black/70 rounded-full p-0.5 hover:bg-red-500/80 text-white"><X className="w-3.5 h-3.5" /></button>
+                      <button type="button" onClick={() => setEditImages(editImages.filter((_, i) => i !== idx))} className="absolute top-1 right-1 bg-black/85 hover:bg-red-500 text-white rounded-full p-1 transition-colors cursor-pointer"><X className="w-3.5 h-3.5" /></button>
                     </div>
                   ))}
                 </div>
@@ -631,7 +760,7 @@ export default function Dashboard() {
       {/* Add Deal Modal (Includes custom standalone deal support) */}
       {showDealModal && (
         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-          <div className="bg-[#111] border border-[#333] rounded-3xl p-6 w-full max-w-md relative text-white animate-fade-in shadow-2xl overflow-y-auto max-h-[90vh]">
+          <div className="bg-[#131313] border border-[#222] rounded-[2rem] p-6 sm:p-8 w-full max-w-xl relative text-white animate-fade-in shadow-2xl overflow-y-auto max-h-[90vh] custom-scrollbar">
             <button onClick={() => {
               setShowDealModal(false);
               setDealForm({
@@ -645,65 +774,105 @@ export default function Dashboard() {
               setDealImages([]);
               setSelectedDealEmirate("");
               setFormError("");
-            }} className="absolute top-4 right-4 text-[#888] hover:text-white cursor-pointer"><X /></button>
-            <h2 className="text-xl font-bold mb-4 tracking-wide text-white">Add Exclusive Deal</h2>
+            }} className="absolute top-5 right-5 text-gray-500 hover:text-white transition-colors cursor-pointer"><X className="w-5 h-5" /></button>
             
-            {formError && <div className="text-red-500 text-sm mb-4">{formError}</div>}
+            <div className="mb-6">
+              <h2 className="text-xl sm:text-2xl font-serif text-white tracking-wide font-normal">Add Exclusive Deal</h2>
+              <p className="text-[#888] text-xs sm:text-sm mt-1">Provide a special discount or offer to attract clients.</p>
+            </div>
             
-            <form onSubmit={handleAddDeal} className="flex flex-col gap-4">
-              <input required placeholder="Deal Title (e.g. Premium AC Deep Cleaning)" value={dealForm.title} onChange={e => setDealForm({...dealForm, title: e.target.value})} className="bg-[#1a1a1a] border border-[#333] rounded-xl px-4 py-3 text-white outline-none focus:border-[#d4933a] text-sm" />
+            {formError && (
+              <div className="bg-red-500/10 border border-red-500/30 text-red-500 p-3.5 rounded-xl text-xs text-center mb-6">
+                {formError}
+              </div>
+            )}
+            
+            <form onSubmit={handleAddDeal} className="flex flex-col gap-5">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[#888] text-[10px] sm:text-[11px] font-semibold tracking-wider uppercase pl-1">Deal Title</label>
+                <input required placeholder="e.g. 50% Off AC Deep Cleaning & Disinfection" value={dealForm.title} onChange={e => setDealForm({...dealForm, title: e.target.value})} className="w-full bg-[#1c1c1c] border border-[#2a2a2a] focus:border-[#d4933a] focus:bg-[#222] text-white rounded-xl py-3.5 px-4 outline-none text-[13px] transition-colors focus:ring-0" />
+              </div>
               
-              <textarea required placeholder="Deal Description / Scope" value={dealForm.description} onChange={e => setDealForm({...dealForm, description: e.target.value})} className="bg-[#1a1a1a] border border-[#333] rounded-xl px-4 py-3 text-white outline-none focus:border-[#d4933a] min-h-[80px] text-sm" />
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[#888] text-[10px] sm:text-[11px] font-semibold tracking-wider uppercase pl-1">Deal Description</label>
+                <textarea required placeholder="Specify what the special discount covers and any terms..." value={dealForm.description} onChange={e => setDealForm({...dealForm, description: e.target.value})} className="w-full bg-[#1c1c1c] border border-[#2a2a2a] focus:border-[#d4933a] focus:bg-[#222] text-white rounded-xl py-3.5 px-4 outline-none text-[13px] transition-colors focus:ring-0 min-h-[80px]" />
+              </div>
               
-              <select required value={dealForm.category_id} onChange={e => setDealForm({...dealForm, category_id: e.target.value})} className="bg-[#1a1a1a] border border-[#333] rounded-xl px-4 py-3 text-[#aaa] outline-none focus:border-[#d4933a] text-sm">
-                <option value="">Select Service Category...</option>
-                {categories.map(c => <option key={c.id} value={c.id} className="text-white">{c.name}</option>)}
-              </select>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[#888] text-[10px] sm:text-[11px] font-semibold tracking-wider uppercase pl-1">Service Category</label>
+                <select required value={dealForm.category_id} onChange={e => setDealForm({...dealForm, category_id: e.target.value})} className="w-full bg-[#1c1c1c] border border-[#2a2a2a] focus:border-[#d4933a] focus:bg-[#222] text-[#aaa] rounded-xl py-3.5 px-4 outline-none text-[13px] transition-colors focus:ring-0">
+                  <option value="" className="bg-[#131313]">Select Service Category...</option>
+                  {categories.map(c => <option key={c.id} value={c.id} className="bg-[#131313] text-white">{c.name}</option>)}
+                </select>
+              </div>
 
-              <select value={selectedDealEmirate} onChange={e => {
-                setSelectedDealEmirate(e.target.value);
-                setDealForm({...dealForm, city_id: ""});
-              }} className="bg-[#1a1a1a] border border-[#333] rounded-xl px-4 py-3 text-[#aaa] outline-none focus:border-[#d4933a] text-sm">
-                <option value="">Select Emirate...</option>
-                {emirates.map(e => <option key={e.id} value={e.id} className="text-white">{e.name}</option>)}
-              </select>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[#888] text-[10px] sm:text-[11px] font-semibold tracking-wider uppercase pl-1">Emirate</label>
+                  <select value={selectedDealEmirate} onChange={e => {
+                    setSelectedDealEmirate(e.target.value);
+                    setDealForm({...dealForm, city_id: ""});
+                  }} className="w-full bg-[#1c1c1c] border border-[#2a2a2a] focus:border-[#d4933a] focus:bg-[#222] text-[#aaa] rounded-xl py-3.5 px-4 outline-none text-[13px] transition-colors focus:ring-0">
+                    <option value="" className="bg-[#131313]">Select Emirate...</option>
+                    {emirates.map(e => <option key={e.id} value={e.id} className="bg-[#131313] text-white">{e.name}</option>)}
+                  </select>
+                </div>
 
-              <select required disabled={!selectedDealEmirate} value={dealForm.city_id} onChange={e => setDealForm({...dealForm, city_id: e.target.value})} className="bg-[#1a1a1a] border border-[#333] rounded-xl px-4 py-3 text-[#aaa] outline-none focus:border-[#d4933a] disabled:opacity-50 text-sm">
-                <option value="">Select City...</option>
-                {cities.filter(c => c.emirate_id.toString() === selectedDealEmirate).map(c => <option key={c.id} value={c.id} className="text-white">{c.name}</option>)}
-              </select>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[#888] text-[10px] sm:text-[11px] font-semibold tracking-wider uppercase pl-1">City / Area</label>
+                  <select required disabled={!selectedDealEmirate} value={dealForm.city_id} onChange={e => setDealForm({...dealForm, city_id: e.target.value})} className="w-full bg-[#1c1c1c] border border-[#2a2a2a] focus:border-[#d4933a] focus:bg-[#222] text-[#aaa] rounded-xl py-3.5 px-4 outline-none text-[13px] transition-colors focus:ring-0 disabled:opacity-50">
+                    <option value="" className="bg-[#131313]">Select City...</option>
+                    {cities.filter(c => c.emirate_id.toString() === selectedDealEmirate).map(c => <option key={c.id} value={c.id} className="bg-[#131313] text-white">{c.name}</option>)}
+                  </select>
+                </div>
+              </div>
               
-              <div className="border border-dashed border-[#333] p-4 rounded-xl bg-[#1a1a1a] text-center flex flex-col items-center gap-1">
-                <input 
-                  type="file" 
-                  multiple 
-                  accept="image/*" 
-                  onChange={(e) => {
-                    if (e.target.files) handleImageUploadGeneric(Array.from(e.target.files), dealImages, setDealImages);
-                  }} 
-                  className="hidden" 
-                  id="deal-image-upload" 
-                />
-                <label htmlFor="deal-image-upload" className="cursor-pointer text-[#d4933a] hover:underline text-sm font-semibold flex items-center gap-1">
-                  <Upload className="w-4 h-4" /> {uploadingImages ? "Uploading..." : `Upload Deal Images (${dealImages.length}/4)`}
-                </label>
+              <div className="flex flex-col gap-1.5 mt-1">
+                <label className="text-[#888] text-[10px] sm:text-[11px] font-semibold tracking-wider uppercase pl-1">Deal Images (Max 4)</label>
+                <div className="relative w-full border-2 border-dashed border-[#2a2a2a] hover:border-[#d4933a] bg-[#1c1c1c] rounded-xl py-6 flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors group overflow-hidden">
+                  {uploadingImages ? (
+                    <div className="flex items-center gap-2 text-[#d4933a] text-xs font-semibold uppercase">
+                      <Loader2 className="w-4 h-4 animate-spin" /> Uploading...
+                    </div>
+                  ) : (
+                    <>
+                      <Upload className="w-5 h-5 text-[#888] group-hover:text-[#d4933a] transition-colors" />
+                      <span className="text-[#666] text-[11px] font-semibold uppercase tracking-wider group-hover:text-[#d4933a] transition-colors">
+                        {dealImages.length > 0 ? `Upload More Images (${dealImages.length}/4)` : "Upload Images"}
+                      </span>
+                    </>
+                  )}
+                  <input 
+                    type="file" 
+                    multiple 
+                    accept="image/*" 
+                    onChange={(e) => {
+                      if (e.target.files) handleImageUploadGeneric(Array.from(e.target.files), dealImages, setDealImages);
+                    }} 
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
+                    disabled={uploadingImages}
+                  />
+                </div>
               </div>
               {dealImages.length > 0 && (
-                <div className="flex gap-2 flex-wrap mt-2">
+                <div className="grid grid-cols-4 gap-3 mt-1">
                   {dealImages.map((img, idx) => (
-                    <div key={idx} className="relative w-14 h-14 rounded overflow-hidden border border-[#333]">
+                    <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-[#2a2a2a] group/thumb">
                       <img src={img} alt="preview" className="w-full h-full object-cover" />
-                      <button type="button" onClick={() => setDealImages(dealImages.filter((_, i) => i !== idx))} className="absolute top-0.5 right-0.5 bg-black/70 rounded-full p-0.5 hover:bg-red-500/80 text-white"><X className="w-3.5 h-3.5" /></button>
+                      <button type="button" onClick={() => setDealImages(dealImages.filter((_, i) => i !== idx))} className="absolute top-1 right-1 bg-black/85 hover:bg-red-500 text-white rounded-full p-1 transition-colors cursor-pointer"><X className="w-3.5 h-3.5" /></button>
                     </div>
                   ))}
                 </div>
               )}
 
-              <textarea required placeholder="Discount Description (e.g. 20% OFF AC Cleaning)" value={dealForm.discount_desc} onChange={e => setDealForm({...dealForm, discount_desc: e.target.value})} className="bg-[#1a1a1a] border border-[#333] rounded-xl px-4 py-3 text-white outline-none focus:border-[#d4933a] min-h-[80px] text-sm" />
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[#888] text-[10px] sm:text-[11px] font-semibold tracking-wider uppercase pl-1">Discount Description</label>
+                <textarea required placeholder="e.g. 25% Flat Discount on all bookings this weekend" value={dealForm.discount_desc} onChange={e => setDealForm({...dealForm, discount_desc: e.target.value})} className="w-full bg-[#1c1c1c] border border-[#2a2a2a] focus:border-[#d4933a] focus:bg-[#222] text-white rounded-xl py-3.5 px-4 outline-none text-[13px] transition-colors focus:ring-0 min-h-[80px]" />
+              </div>
               
-              <div className="flex flex-col gap-1">
-                <label className="text-xs text-[#888] pl-1 font-medium">Expiry Date</label>
-                <input required type="date" value={dealForm.expiry_date} onChange={e => setDealForm({...dealForm, expiry_date: e.target.value})} className="bg-[#1a1a1a] border border-[#333] rounded-xl px-4 py-3 text-[#aaa] outline-none focus:border-[#d4933a] text-sm" />
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[#888] text-[10px] sm:text-[11px] font-semibold tracking-wider uppercase pl-1">Expiry Date</label>
+                <input required type="date" value={dealForm.expiry_date} onChange={e => setDealForm({...dealForm, expiry_date: e.target.value})} className="w-full bg-[#1c1c1c] border border-[#2a2a2a] focus:border-[#d4933a] focus:bg-[#222] text-[#aaa] rounded-xl py-3.5 px-4 outline-none text-[13px] transition-colors focus:ring-0" />
               </div>
               
               <button type="submit" disabled={uploadingImages || dealImages.length > 4} className="bg-[#d4933a] hover:bg-[#c28532] text-white py-3.5 rounded-xl font-bold mt-2 text-sm shadow-[0_0_15px_rgba(212,147,58,0.2)] hover:shadow-[0_0_25px_rgba(212,147,58,0.4)] cursor-pointer">Publish Deal</button>

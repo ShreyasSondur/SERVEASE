@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import api from "@/lib/api";
 import { ArrowLeft, User, Phone, MapPin, Briefcase, FileText, CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
 import Navbar from "@/components/Navbar";
+import Image from "next/image";
 
 export default function PartnerDetailsPage() {
   const params = useParams();
@@ -198,9 +199,12 @@ export default function PartnerDetailsPage() {
                 
                 <p className="text-[#888] text-[10px] uppercase font-bold tracking-widest mb-3 self-start">Emirate ID Scan</p>
                 <div className="w-full relative rounded-xl overflow-hidden border-2 border-[#333] bg-[#000] group">
-                  <img 
+                  <Image 
                     src={partner.emirates_id_url} 
                     alt="Emirate ID" 
+                    width={800}
+                    height={500}
+                    sizes="100vw"
                     className="w-full h-auto object-contain transition-transform duration-500 group-hover:scale-105"
                   />
                   <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm">

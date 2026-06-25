@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { User, BadgeCheck, MapPin, X, Phone, MessageCircle, Calendar } from "lucide-react";
+import { User, BadgeCheck, MapPin, X, Phone, MessageCircle, Calendar, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import api from "@/lib/api";
 import ImageCarousel from "@/components/ImageCarousel";
@@ -17,8 +17,14 @@ export default function ServiceDetail() {
   const [error, setError] = useState("");
   const [showContactModal, setShowContactModal] = useState(false);
   const [showAuthRequiredModal, setShowAuthRequiredModal] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [checkedAuth, setCheckedAuth] = useState(false);
 
   useEffect(() => {
+    const token = localStorage.getItem("token");
+    setIsLoggedIn(!!token);
+    setCheckedAuth(true);
+
     const fetchService = async () => {
       try {
         const res = await api.get(`/services/${params.id}`);
@@ -54,6 +60,46 @@ export default function ServiceDetail() {
     );
   }
 
+  if (checkedAuth && !isLoggedIn) {
+    return (
+      <div className="relative min-h-screen bg-[#0b0a0a] flex flex-col w-full font-sans text-white">
+        <Navbar />
+        <main className="flex-grow w-full max-w-[1200px] mx-auto px-4 sm:px-6 md:px-8 py-10 pt-28 flex items-center justify-center">
+          <div className="bg-[#151515] border border-[#222] rounded-3xl p-8 md:p-12 max-w-lg w-full text-center shadow-2xl animate-fade-in text-white relative">
+            <div className="w-20 h-20 rounded-full bg-[#d4933a]/10 border border-[#d4933a]/30 flex items-center justify-center mx-auto mb-8 shadow-[0_0_20px_rgba(212,147,58,0.1)]">
+              <User className="w-10 h-10 text-[#d4933a]" />
+            </div>
+            <h2 className="text-2xl md:text-3xl font-semibold text-white mb-4 tracking-wide font-serif">
+              Login Required
+            </h2>
+            <p className="text-[#888] text-sm md:text-base leading-relaxed mb-10">
+              Please log in or register for a free account to view this partner's full service details, images, description, and contact information.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link href={`/login?redirect=/services/${params.id}`} className="w-full sm:w-1/2">
+                <button className="w-full bg-[#d4933a] hover:bg-[#c28532] text-white py-4 rounded-xl font-bold transition-all shadow-[0_0_20px_rgba(212,147,58,0.25)] hover:shadow-[0_0_30px_rgba(212,147,58,0.4)] cursor-pointer">
+                  Log In
+                </button>
+              </Link>
+              <Link href={`/signup?redirect=/services/${params.id}`} className="w-full sm:w-1/2">
+                <button className="w-full bg-[#222] border border-[#333] hover:border-[#444] text-[#aaa] hover:text-white py-4 rounded-xl font-bold transition-all cursor-pointer">
+                  Register for Free
+                </button>
+              </Link>
+            </div>
+            <button 
+              onClick={() => router.back()} 
+              className="mt-6 text-[#d4933a] hover:underline text-sm font-semibold tracking-wide cursor-pointer flex items-center gap-1.5 justify-center mx-auto"
+            >
+              <ArrowLeft className="w-4 h-4" /> Go Back
+            </button>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
   if (error || !service) {
     return (
       <div className="relative min-h-screen bg-[#0b0a0a] flex flex-col w-full font-sans text-white">
@@ -76,6 +122,17 @@ export default function ServiceDetail() {
       <Navbar />
 
       <main className="flex-grow w-full max-w-[1200px] mx-auto px-4 sm:px-6 md:px-8 py-10 pt-28">
+        {/* Back Navigation */}
+        <div className="mb-6 animate-fade-in">
+          <button 
+            onClick={() => router.back()} 
+            className="flex items-center gap-2 text-white/50 hover:text-white transition-colors text-sm font-semibold tracking-wide cursor-pointer group"
+          >
+            <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
+            Back to Services
+          </button>
+        </div>
+
         {/* Title */}
         <h1 className="text-2xl sm:text-3xl md:text-[32px] font-medium mb-6 sm:mb-8 text-white tracking-wide animate-fade-in">
           {service.title}
@@ -200,7 +257,7 @@ export default function ServiceDetail() {
                   Log In
                 </button>
               </Link>
-              <Link href={`/register?redirect=/services/${service.id}`}>
+              <Link href={`/signup?redirect=/services/${service.id}`}>
                 <button className="w-full bg-[#222] border border-[#333] hover:border-[#444] text-[#aaa] hover:text-white py-3.5 rounded-xl font-bold transition-all cursor-pointer">
                   Register for Free
                 </button>
