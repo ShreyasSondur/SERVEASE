@@ -5,7 +5,7 @@ import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
-import api from "@/lib/api";
+import api, { API_URL } from "@/lib/api";
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
@@ -77,7 +77,7 @@ export default function Login() {
 
   const handleGoogleLogin = () => {
     // Redirect to backend Google auth endpoint
-    window.location.href = "http://localhost:8000/api/v1/auth/google/login";
+    window.location.href = `${API_URL}/auth/google/login`;
   };
 
   return (
