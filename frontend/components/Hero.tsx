@@ -4,30 +4,23 @@ import { useState, useRef, useEffect } from "react";
 import { Search, MapPin, ChevronDown, ArrowRight, Target } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-
-const EMIRATES_DATA: Record<string, string[]> = {
-  "Dubai": ["Sobha Hartland", "Downtown Dubai", "Dubai Marina", "Jumeirah", "Business Bay", "Al Barsha", "Palm Jumeirah"],
-  "Abu Dhabi": ["Al Reem Island", "Yas Island", "Saadiyat Island", "Khalifa City", "Al Raha Beach"],
-  "Sharjah": ["Al Majaz", "Al Nahda", "Al Qasimia", "Muwaileh", "Al Taawun"],
-  "Ajman": ["Al Rashidiya", "Al Nuaimiya", "Al Jurf", "Emirates City"],
-  "Ras Al Khaimah": ["Al Hamra Village", "Mina Al Arab", "Al Marjan Island", "Dafan Al Nakheel"],
-  "Fujairah": ["Al Faseel", "Dibba", "Sakamkam"],
-  "Umm Al Quwain": ["Al Salamah", "Al Ramlah", "Al Maqtaa"]
-};
-
-const EMIRATES = Object.keys(EMIRATES_DATA);
+import api from "@/lib/api";
 
 export default function Hero() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
-  const [emirate, setEmirate] = useState("Dubai");
-  const [area, setArea] = useState("Sobha Hartland");
+  const [emirates, setEmirates] = useState<any[]>([]);
+  const [cities, setCities] = useState<any[]>([]);
+  
+  const [selectedEmirateId, setSelectedEmirateId] = useState("");
+  const [selectedCityId, setSelectedCityId] = useState("");
+  const [loading, setLoading] = useState(true);
 
   const [isEmirateOpen, setIsEmirateOpen] = useState(false);
-  const [isAreaOpen, setIsAreaOpen] = useState(false);
+  const [isCityOpen, setIsCityOpen] = useState(false);
 
   const emirateRef = useRef<HTMLDivElement>(null);
-  const areaRef = useRef<HTMLDivElement>(null);
+  const cityRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -35,24 +28,63 @@ export default function Hero() {
       if (emirateRef.current && !emirateRef.current.contains(event.target as Node)) {
         setIsEmirateOpen(false);
       }
-      if (areaRef.current && !areaRef.current.contains(event.target as Node)) {
-        setIsAreaOpen(false);
+      if (cityRef.current && !cityRef.current.contains(event.target as Node)) {
+        setIsCityOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Update area when emirate changes
+  // Fetch catalog data
   useEffect(() => {
-    if (!EMIRATES_DATA[emirate].includes(area)) {
-      setArea(EMIRATES_DATA[emirate][0]);
+    const fetchCatalog = async () => {
+      try {
+        const [emRes, cityRes] = await Promise.all([
+          api.get("/catalog/emirates"),
+          api.get("/catalog/cities")
+        ]);
+        setEmirates(emRes.data);
+        setCities(cityRes.data);
+        
+        if (emRes.data.length > 0) {
+          const firstEmirateId = emRes.data[0].id.toString();
+          setSelectedEmirateId(firstEmirateId);
+          
+          const filteredCities = cityRes.data.filter((c: any) => c.emirate_id.toString() === firstEmirateId);
+          if (filteredCities.length > 0) {
+            setSelectedCityId(filteredCities[0].id.toString());
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load catalog data in hero:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCatalog();
+  }, []);
+
+  // Update city when emirate changes
+  useEffect(() => {
+    if (selectedEmirateId) {
+      const filteredCities = cities.filter(c => c.emirate_id.toString() === selectedEmirateId);
+      if (!filteredCities.find(c => c.id.toString() === selectedCityId)) {
+        if (filteredCities.length > 0) {
+          setSelectedCityId(filteredCities[0].id.toString());
+        } else {
+          setSelectedCityId("");
+        }
+      }
     }
-  }, [emirate, area]);
+  }, [selectedEmirateId, cities]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    router.push(`/services?q=${encodeURIComponent(searchQuery)}&emirate=${encodeURIComponent(emirate)}&area=${encodeURIComponent(area)}`);
+    const emirateName = emirates.find(em => em.id.toString() === selectedEmirateId)?.name || "";
+    const cityName = cities.find(c => c.id.toString() === selectedCityId)?.name || "";
+    
+    router.push(`/services?q=${encodeURIComponent(searchQuery)}&emirate=${encodeURIComponent(emirateName)}&area=${encodeURIComponent(cityName)}`);
   };
 
   return (
@@ -111,44 +143,45 @@ export default function Hero() {
                 />
               </div>
 
-              {/* Middle Section: Area Dropdown */}
+              {/* Middle Section: City Dropdown */}
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center w-full sm:w-auto border-t sm:border-t-0 sm:border-l border-[#333] pt-2 sm:pt-0">
-                <div className="relative flex items-center justify-between sm:justify-start w-full sm:w-auto px-4 py-3 sm:py-0 min-w-[180px]" ref={areaRef}>
+                <div className="relative flex items-center justify-between sm:justify-start w-full sm:w-auto px-4 py-3 sm:py-0 min-w-[180px]" ref={cityRef}>
                   <button
                     type="button"
+                    disabled={loading || !selectedEmirateId}
                     onClick={() => {
-                      setIsAreaOpen(!isAreaOpen);
+                      setIsCityOpen(!isCityOpen);
                       setIsEmirateOpen(false);
                     }}
-                    className="flex items-center justify-between w-full gap-3 text-left text-sm sm:text-[14px] font-medium text-white hover:text-[#d4933a] transition-colors duration-200"
+                    className="flex items-center justify-between w-full gap-3 text-left text-sm sm:text-[14px] font-medium text-white hover:text-[#d4933a] transition-colors duration-200 disabled:opacity-50"
                   >
                     <div className="flex items-center gap-2">
                       <Target className="w-4 h-4 text-[#888]" strokeWidth={1.5} />
-                      <span className="truncate">{area}</span>
+                      <span className="truncate">{cities.find(c => c.id.toString() === selectedCityId)?.name || "Select City"}</span>
                     </div>
                     <ChevronDown
-                      className={`w-3.5 h-3.5 text-[#888] transition-transform duration-300 ${isAreaOpen ? "rotate-180" : ""
+                      className={`w-3.5 h-3.5 text-[#888] transition-transform duration-300 ${isCityOpen ? "rotate-180" : ""
                         }`}
                     />
                   </button>
 
-                  {/* Area Dropdown Menu */}
-                  {isAreaOpen && (
+                  {/* City Dropdown Menu */}
+                  {isCityOpen && selectedEmirateId && (
                     <div className="absolute left-0 right-0 bottom-full sm:bottom-auto sm:top-full mb-2 sm:mt-6 sm:w-[220px] max-h-[300px] overflow-y-auto rounded-2xl bg-[#1c1c1c] border border-[#333] p-2 shadow-2xl z-50 flex flex-col gap-1 custom-scrollbar">
-                      {EMIRATES_DATA[emirate].map((loc) => (
+                      {cities.filter(c => c.emirate_id.toString() === selectedEmirateId).map((city) => (
                         <button
-                          key={loc}
+                          key={city.id}
                           type="button"
                           onClick={() => {
-                            setArea(loc);
-                            setIsAreaOpen(false);
+                            setSelectedCityId(city.id.toString());
+                            setIsCityOpen(false);
                           }}
-                          className={`w-full text-left px-4 py-2.5 text-sm rounded-xl transition-all duration-150 ${area === loc
+                          className={`w-full text-left px-4 py-2.5 text-sm rounded-xl transition-all duration-150 ${selectedCityId === city.id.toString()
                             ? "bg-[#d4933a]/10 text-[#d4933a] font-medium"
                             : "text-[#D4D2CD] hover:text-white hover:bg-white/5"
                             }`}
                         >
-                          {loc}
+                          {city.name}
                         </button>
                       ))}
                     </div>
@@ -159,15 +192,16 @@ export default function Hero() {
                 <div className="relative flex items-center justify-between sm:justify-start w-full sm:w-auto px-4 py-3 sm:py-0 border-t sm:border-t-0 sm:border-l border-[#333] min-w-[150px]" ref={emirateRef}>
                   <button
                     type="button"
+                    disabled={loading}
                     onClick={() => {
                       setIsEmirateOpen(!isEmirateOpen);
-                      setIsAreaOpen(false);
+                      setIsCityOpen(false);
                     }}
-                    className="flex items-center justify-between w-full gap-3 text-left text-sm sm:text-[14px] font-medium text-white hover:text-[#d4933a] transition-colors duration-200"
+                    className="flex items-center justify-between w-full gap-3 text-left text-sm sm:text-[14px] font-medium text-white hover:text-[#d4933a] transition-colors duration-200 disabled:opacity-50"
                   >
                     <div className="flex items-center gap-2">
                       <MapPin className="w-4 h-4 text-[#888]" strokeWidth={1.5} />
-                      <span className="truncate">{emirate}</span>
+                      <span className="truncate">{emirates.find(em => em.id.toString() === selectedEmirateId)?.name || "Select Emirate"}</span>
                     </div>
                     <ChevronDown
                       className={`w-3.5 h-3.5 text-[#888] transition-transform duration-300 ${isEmirateOpen ? "rotate-180" : ""
@@ -178,20 +212,20 @@ export default function Hero() {
                   {/* Emirate Dropdown Menu */}
                   {isEmirateOpen && (
                     <div className="absolute left-0 right-0 sm:right-auto sm:left-0 bottom-full sm:bottom-auto sm:top-full mb-2 sm:mt-6 sm:w-[180px] rounded-2xl bg-[#1c1c1c] border border-[#333] p-2 shadow-2xl z-50 flex flex-col gap-1">
-                      {EMIRATES.map((em) => (
+                      {emirates.map((em) => (
                         <button
-                          key={em}
+                          key={em.id}
                           type="button"
                           onClick={() => {
-                            setEmirate(em);
+                            setSelectedEmirateId(em.id.toString());
                             setIsEmirateOpen(false);
                           }}
-                          className={`w-full text-left px-4 py-2.5 text-sm rounded-xl transition-all duration-150 ${emirate === em
+                          className={`w-full text-left px-4 py-2.5 text-sm rounded-xl transition-all duration-150 ${selectedEmirateId === em.id.toString()
                             ? "bg-[#d4933a]/10 text-[#d4933a] font-medium"
                             : "text-[#D4D2CD] hover:text-white hover:bg-white/5"
                             }`}
                         >
-                          {em}
+                          {em.name}
                         </button>
                       ))}
                     </div>
