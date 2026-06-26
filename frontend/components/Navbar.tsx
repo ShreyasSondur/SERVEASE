@@ -174,14 +174,14 @@ export default function Navbar() {
                   </Link>
                 ) : userRole === "ADMIN" ? (
                   <Link
-                    href="/admin/dashboard"
+                    href="/zQ8pL3mX9vN2/dashboard"
                     className="relative inline-flex items-center justify-center rounded-full border border-gold py-2 px-6 tracking-wide text-base md:text-[17px] lg:text-lg font-serif font-bold text-gold hover:bg-gold/10 transition-colors"
                   >
                     Admin Dashboard
                   </Link>
                 ) : userRole === "MODERATOR" ? (
                   <Link
-                    href="/admin/dashboard"
+                    href="/zQ8pL3mX9vN2/dashboard"
                     className="relative inline-flex items-center justify-center rounded-full border border-gold py-2 px-6 tracking-wide text-base md:text-[17px] lg:text-lg font-serif font-bold text-gold hover:bg-gold/10 transition-colors"
                   >
                     Mod Dashboard
@@ -292,7 +292,7 @@ export default function Navbar() {
                 </Link>
               ) : userRole === "ADMIN" ? (
                 <Link
-                  href="/admin/dashboard"
+                  href="/zQ8pL3mX9vN2/dashboard"
                   onClick={() => setIsOpen(false)}
                   className="mt-4 block w-full text-center rounded-full border border-gold py-2 px-5 tracking-wide text-[17px] font-bold text-gold hover:bg-gold/10 transition-colors"
                 >
@@ -300,7 +300,7 @@ export default function Navbar() {
                 </Link>
               ) : userRole === "MODERATOR" ? (
                 <Link
-                  href="/admin/dashboard"
+                  href="/zQ8pL3mX9vN2/dashboard"
                   onClick={() => setIsOpen(false)}
                   className="mt-4 block w-full text-center rounded-full border border-gold py-2 px-5 tracking-wide text-[17px] font-bold text-gold hover:bg-gold/10 transition-colors"
                 >
