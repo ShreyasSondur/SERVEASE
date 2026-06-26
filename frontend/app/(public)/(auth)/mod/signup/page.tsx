@@ -62,7 +62,7 @@ export default function ModSignup() {
           <p className="text-[#888] mb-8 text-sm leading-relaxed">
             Your moderator account has been created, but it requires <strong className="text-white">Admin Verification</strong>. You will not be able to log in until an Admin approves your application.
           </p>
-          <Link href="/mod/login" className="inline-block bg-[#d4933a] hover:bg-[#c28532] text-white px-8 py-3.5 rounded-xl font-bold tracking-wide transition-all shadow-[0_0_15px_rgba(212,147,58,0.15)] hover:shadow-[0_0_30px_rgba(212,147,58,0.3)]">
+          <Link href="/login" className="inline-block bg-[#d4933a] hover:bg-[#c28532] text-white px-8 py-3.5 rounded-xl font-bold tracking-wide transition-all shadow-[0_0_15px_rgba(212,147,58,0.15)] hover:shadow-[0_0_30px_rgba(212,147,58,0.3)]">
             Return to Login
           </Link>
         </div>
@@ -181,7 +181,7 @@ export default function ModSignup() {
         </form>
 
         <p className="text-center text-[#555] text-xs mt-6">
-          Already a moderator? <Link href="/mod/login" className="text-[#d4933a] hover:underline">Log in</Link>.
+          Already a moderator? <Link href="/login" className="text-[#d4933a] hover:underline">Log in</Link>.
         </p>
       </div>
     </div>

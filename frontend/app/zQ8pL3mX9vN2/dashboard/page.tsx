@@ -81,12 +81,12 @@ export default function AdminDashboard() {
       try {
         const res = await api.get("/auth/me");
         if (res.data.role !== "ADMIN" && res.data.role !== "MODERATOR") {
-          window.location.href = "/admin/login";
+          window.location.href = "/login";
         }
         setUserRole(res.data.role);
         fetchData();
       } catch (err) {
-        window.location.href = "/admin/login";
+        window.location.href = "/login";
       }
     };
     checkAuth();
@@ -98,7 +98,7 @@ export default function AdminDashboard() {
     setLoading(true);
     try {
       if (activeTab === "Dashboard") {
-        const res = await api.get("/admin/dashboard");
+        const res = await api.get("/zQ8pL3mX9vN2/dashboard");
         setStats(res.data);
       } else if (activeTab === "Partners" || activeTab === "Verify Partner" || activeTab === "Suspended") {
         const res = await api.get("/admin/partners");
@@ -138,7 +138,7 @@ export default function AdminDashboard() {
 
   const handleLogout = () => {
     localStorage.removeItem("token");
-    window.location.href = "/admin/login";
+    window.location.href = "/login";
   };
 
   const verifyPartner = async (id: number) => {
@@ -368,7 +368,7 @@ export default function AdminDashboard() {
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Link href={`/admin/dashboard/partner/${p.id}`} className="bg-[#222] hover:bg-[#333] border border-[#333] hover:border-[#d4933a] text-[#888] hover:text-[#d4933a] px-4 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all">
+                    <Link href={`/zQ8pL3mX9vN2/dashboard/partner/${p.id}`} className="bg-[#222] hover:bg-[#333] border border-[#333] hover:border-[#d4933a] text-[#888] hover:text-[#d4933a] px-4 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all">
                       View Details
                     </Link>
                     {p.status === "VERIFIED" && (
@@ -400,7 +400,7 @@ export default function AdminDashboard() {
                     <span className="text-white text-[15px]">{p.business_name || `${p.first_name} ${p.last_name}`}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Link href={`/admin/dashboard/partner/${p.id}`} className="bg-[#222] hover:bg-[#333] border border-[#333] hover:border-[#d4933a] text-[#888] hover:text-[#d4933a] px-4 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all">
+                    <Link href={`/zQ8pL3mX9vN2/dashboard/partner/${p.id}`} className="bg-[#222] hover:bg-[#333] border border-[#333] hover:border-[#d4933a] text-[#888] hover:text-[#d4933a] px-4 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all">
                       View Details
                     </Link>
                     <button onClick={() => verifyPartner(p.id)} className="bg-green-500 hover:bg-green-600 text-white px-4 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-colors">
@@ -428,7 +428,7 @@ export default function AdminDashboard() {
                     <span className="text-white text-[15px]">{p.business_name || `${p.first_name} ${p.last_name}`}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Link href={`/admin/dashboard/partner/${p.id}`} className="bg-[#222] hover:bg-[#333] border border-[#333] hover:border-[#d4933a] text-[#888] hover:text-[#d4933a] px-4 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all">
+                    <Link href={`/zQ8pL3mX9vN2/dashboard/partner/${p.id}`} className="bg-[#222] hover:bg-[#333] border border-[#333] hover:border-[#d4933a] text-[#888] hover:text-[#d4933a] px-4 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all">
                       View Details
                     </Link>
                     <button onClick={() => verifyPartner(p.id)} className="bg-green-500 hover:bg-green-600 text-white px-4 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-colors">

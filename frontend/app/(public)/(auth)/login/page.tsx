@@ -64,6 +64,16 @@ export default function Login() {
           } catch (meErr) {
             console.error("Failed to fetch user role on login", meErr);
           }
+        } else if (redirectPath === "/") {
+          try {
+            const userRes = await api.get("/auth/me");
+            const role = userRes.data.role;
+            if (role === "ADMIN" || role === "MODERATOR") {
+              redirectPath = "/zQ8pL3mX9vN2/dashboard";
+            }
+          } catch (meErr) {
+            console.error("Failed to fetch user role on login", meErr);
+          }
         }
         
         window.location.href = redirectPath;
