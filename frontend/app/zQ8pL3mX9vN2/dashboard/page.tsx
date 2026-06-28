@@ -838,7 +838,7 @@ export default function AdminDashboard() {
                   <h3 className="text-white text-[15px] font-medium mb-4">Locations Directory</h3>
                   <div className="flex flex-col gap-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                     {catalogEmirates.map(emirate => (
-                      <div key={emirate.id} className="border border-[#2a2a2a] rounded-xl overflow-hidden">
+                      <div key={emirate.id} className="border border-[#2a2a2a] rounded-xl overflow-hidden shrink-0">
                         <div className="bg-[#1a1a1a] px-4 py-3 border-b border-[#2a2a2a] flex items-center justify-between">
                           <span className="text-[#d4933a] font-bold text-sm tracking-wide">{emirate.name}</span>
                           <button
