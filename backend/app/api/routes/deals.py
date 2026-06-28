@@ -5,14 +5,14 @@ from app.api.dependencies import get_db, get_current_active_partner, get_current
 from app.models.user import User, UserRole
 from app.models.partner import PartnerProfile, PartnerStatus
 from app.models.business import Deal, Service
-from app.schemas.business import Deal as DealSchema, DealCreate, DealUpdate
+from app.schemas.business import Deal as DealSchema, DealCreate, DealUpdate, PaginatedDealResponse
 
 router = APIRouter()
 
-@router.get("/", response_model=List[DealSchema])
+@router.get("/", response_model=PaginatedDealResponse)
 def list_deals(
-    skip: int = 0, 
-    limit: int = 100,
+    page: int = 1, 
+    limit: int = 10,
     emirate_id: int | None = None,
     city_id: int | None = None,
     category_id: int | None = None,
@@ -49,14 +49,15 @@ def list_deals(
     db.add(search_log)
     db.commit()
 
-    deals = query.offset(skip).limit(limit).all()
+    total = query.count()
+    deals = query.offset((page - 1) * limit).limit(limit).all()
     results = [DealSchema.model_validate(d) for d in deals]
     if not current_user:
         for d in results:
             if d.partner:
                 d.partner.phone = "HIDDEN_LOGIN_REQUIRED"
                 d.partner.email = "HIDDEN_LOGIN_REQUIRED"
-    return results
+    return {"items": results, "total": total}
 
 @router.post("/", response_model=DealSchema)
 def create_deal(

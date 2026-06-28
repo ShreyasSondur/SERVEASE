@@ -17,6 +17,12 @@ export default function Services() {
   const [services, setServices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const limit = 10;
+
   // Catalog data
   const [emirates, setEmirates] = useState<any[]>([]);
   const [cities, setCities] = useState<any[]>([]);
@@ -117,7 +123,7 @@ export default function Services() {
         setCheckedAuth(true);
 
         setLoading(true);
-        let url = "/search/?";
+        let url = `/search/?page=1&limit=${limit}&`;
         if (emirateId) url += `emirate_id=${emirateId}&`;
         if (cityId) url += `city_id=${cityId}&`;
         if (globalServiceId) {
@@ -127,7 +133,10 @@ export default function Services() {
         }
 
         const response = await api.get(url);
-        setServices(response.data);
+        setServices(response.data.items || []);
+        setTotalItems(response.data.total || 0);
+        setTotalPages(Math.ceil((response.data.total || 0) / limit) || 1);
+        setCurrentPage(1);
       } catch (err) {
         console.error("Failed to load catalog and search:", err);
       } finally {
@@ -137,10 +146,10 @@ export default function Services() {
     fetchCatalogAndSearch();
   }, []);
 
-  const fetchServices = async () => {
+  const fetchServices = async (pageToFetch = 1) => {
     setLoading(true);
     try {
-      let url = "/search/?";
+      let url = `/search/?page=${pageToFetch}&limit=${limit}&`;
       if (selectedEmirate) url += `emirate_id=${selectedEmirate}&`;
       if (selectedCity) url += `city_id=${selectedCity}&`;
       if (selectedGlobalService) {
@@ -150,7 +159,10 @@ export default function Services() {
       }
 
       const response = await api.get(url);
-      setServices(response.data);
+      setServices(response.data.items || []);
+      setTotalItems(response.data.total || 0);
+      setTotalPages(Math.ceil((response.data.total || 0) / limit) || 1);
+      setCurrentPage(pageToFetch);
     } catch (error: any) {
       if (error.response?.status === 401) {
         setIsLoggedIn(false);
@@ -162,7 +174,7 @@ export default function Services() {
   };
 
   const handleSearch = () => {
-    fetchServices();
+    fetchServices(1);
   };
 
   const handleContact = (service: any) => {
@@ -425,6 +437,50 @@ export default function Services() {
             ))
           )}
         </div>
+
+        {/* Pagination */}
+        {!loading && totalPages > 1 && (
+          <div className="flex justify-center items-center mt-12 gap-2">
+            <button
+              disabled={currentPage === 1}
+              onClick={() => {
+                fetchServices(currentPage - 1);
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+              className="w-10 h-10 flex items-center justify-center rounded-full bg-[#222] border border-[#333] text-white hover:bg-[#333] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+              <button
+                key={page}
+                onClick={() => {
+                  fetchServices(page);
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+                className={`w-10 h-10 flex items-center justify-center rounded-full text-sm font-medium transition-colors ${
+                  currentPage === page
+                    ? "bg-[#d4933a] text-white"
+                    : "bg-[#222] border border-[#333] text-white hover:bg-[#333]"
+                }`}
+              >
+                {page}
+              </button>
+            ))}
+
+            <button
+              disabled={currentPage === totalPages}
+              onClick={() => {
+                fetchServices(currentPage + 1);
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+              className="w-10 h-10 flex items-center justify-center rounded-full bg-[#222] border border-[#333] text-white hover:bg-[#333] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </div>
+        )}
       </main>
 
       <Footer />

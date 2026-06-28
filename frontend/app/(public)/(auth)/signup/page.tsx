@@ -211,7 +211,7 @@ export default function Signup() {
 
           <button 
             type="button" 
-            onClick={() => window.location.href = `${API_URL}/auth/google/login`}
+            onClick={() => window.location.href = `${API_URL}/auth/google/login?prompt=select_account`}
             className="w-full mt-6 bg-[#222] hover:bg-[#333] border border-[#333] text-white font-semibold py-3 rounded-xl transition-colors text-[14px] sm:text-[15px] shadow-lg flex items-center justify-center gap-2 cursor-pointer"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">

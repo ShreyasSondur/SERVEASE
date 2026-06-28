@@ -5,19 +5,21 @@ from app.api.dependencies import get_db, get_current_user_optional
 from app.models.user import User
 from app.models.business import Service
 from app.models.partner import PartnerProfile, PartnerStatus
-from app.schemas.business import Service as ServiceSchema
+from app.schemas.business import Service as ServiceSchema, PaginatedServiceResponse
 from app.models.analytics import SearchHistory
 from datetime import datetime, timezone
 
 router = APIRouter()
 
-@router.get("/", response_model=List[ServiceSchema])
+@router.get("/", response_model=PaginatedServiceResponse)
 def search_services(
     request: Request,
     emirate_id: Optional[int] = None,
     city_id: Optional[int] = None,
     category_id: Optional[int] = None,
     q: Optional[str] = None,
+    page: int = 1,
+    limit: int = 10,
     db: Session = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_user_optional),
 ):
@@ -45,11 +47,12 @@ def search_services(
     db.add(search_log)
     db.commit()
         
-    services = query.all()
+    total = query.count()
+    services = query.offset((page - 1) * limit).limit(limit).all()
     results = [ServiceSchema.model_validate(s) for s in services]
     if not current_user:
         for s in results:
             if s.partner:
                 s.partner.phone = "HIDDEN_LOGIN_REQUIRED"
                 s.partner.email = "HIDDEN_LOGIN_REQUIRED"
-    return results
+    return {"items": results, "total": total}

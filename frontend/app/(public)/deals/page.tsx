@@ -17,6 +17,12 @@ export default function Deals() {
   const [deals, setDeals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const limit = 10;
+
   // Catalog data
   const [emirates, setEmirates] = useState<any[]>([]);
   const [cities, setCities] = useState<any[]>([]);
@@ -118,10 +124,10 @@ export default function Deals() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const fetchDeals = async () => {
+  const fetchDeals = async (pageToFetch = 1) => {
     setLoading(true);
     try {
-      let url = "/deals/?";
+      let url = `/deals/?page=${pageToFetch}&limit=${limit}&`;
       if (selectedEmirate) url += `emirate_id=${selectedEmirate}&`;
       if (selectedCity) url += `city_id=${selectedCity}&`;
       if (selectedGlobalService) {
@@ -131,7 +137,10 @@ export default function Deals() {
       }
 
       const response = await api.get(url);
-      setDeals(response.data);
+      setDeals(response.data.items || []);
+      setTotalItems(response.data.total || 0);
+      setTotalPages(Math.ceil((response.data.total || 0) / limit) || 1);
+      setCurrentPage(pageToFetch);
     } catch (error: any) {
       if (error.response?.status === 401) {
         setIsLoggedIn(false);
@@ -150,7 +159,7 @@ export default function Deals() {
   }, []);
 
   const handleSearch = () => {
-    fetchDeals();
+    fetchDeals(1);
   };
 
   const handleContact = (deal: any) => {
@@ -427,6 +436,50 @@ export default function Deals() {
             ))
           )}
         </div>
+
+        {/* Pagination */}
+        {!loading && totalPages > 1 && (
+          <div className="flex justify-center items-center mt-12 gap-2">
+            <button
+              disabled={currentPage === 1}
+              onClick={() => {
+                fetchDeals(currentPage - 1);
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+              className="w-10 h-10 flex items-center justify-center rounded-full bg-[#222] border border-[#333] text-white hover:bg-[#333] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+              <button
+                key={page}
+                onClick={() => {
+                  fetchDeals(page);
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+                className={`w-10 h-10 flex items-center justify-center rounded-full text-sm font-medium transition-colors ${
+                  currentPage === page
+                    ? "bg-[#d4933a] text-white"
+                    : "bg-[#222] border border-[#333] text-white hover:bg-[#333]"
+                }`}
+              >
+                {page}
+              </button>
+            ))}
+
+            <button
+              disabled={currentPage === totalPages}
+              onClick={() => {
+                fetchDeals(currentPage + 1);
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+              className="w-10 h-10 flex items-center justify-center rounded-full bg-[#222] border border-[#333] text-white hover:bg-[#333] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </div>
+        )}
       </main>
 
       <Footer />

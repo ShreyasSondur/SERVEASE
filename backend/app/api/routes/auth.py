@@ -78,16 +78,20 @@ from fastapi.responses import RedirectResponse
 import secrets
 
 @router.get("/google/login")
-def google_login():
+def google_login(prompt: str = None):
     client_id = settings.GOOGLE_CLIENT_ID
     if not client_id:
         raise HTTPException(status_code=500, detail="Google OAuth not configured")
         
     # Using frontend redirect URI for now, or backend
     redirect_uri = f"{settings.SERVER_HOST}/api/v1/auth/google/callback"
-    return RedirectResponse(
-        f"https://accounts.google.com/o/oauth2/v2/auth?response_type=code&client_id={client_id}&redirect_uri={redirect_uri}&scope=openid%20email%20profile&access_type=offline"
-    )
+    
+    google_auth_url = f"https://accounts.google.com/o/oauth2/v2/auth?response_type=code&client_id={client_id}&redirect_uri={redirect_uri}&scope=openid%20email%20profile&access_type=offline"
+    
+    if prompt:
+        google_auth_url += f"&prompt={prompt}"
+        
+    return RedirectResponse(google_auth_url)
 
 @router.get("/google/callback")
 async def google_callback(code: str, db: Session = Depends(get_db)):
