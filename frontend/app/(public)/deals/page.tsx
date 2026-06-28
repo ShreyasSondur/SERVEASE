@@ -38,6 +38,49 @@ export default function Deals() {
         setEmirates(emRes.data);
         setCities(cityRes.data);
         setGlobalServices(catRes.data);
+
+        // Pre-populate from URL query params
+        const params = new URLSearchParams(window.location.search);
+        const qParam = params.get("q") || "";
+        const emirateParam = params.get("emirate") || "";
+        const areaParam = params.get("area") || "";
+        const categoryIdParam = params.get("category_id") || "";
+
+        let emirateId = "";
+        let cityId = "";
+        let globalServiceId = "";
+
+        if (emirateParam) {
+          const matchedEm = emRes.data.find((e: any) => e.name.toLowerCase() === emirateParam.toLowerCase());
+          if (matchedEm) {
+            emirateId = matchedEm.id.toString();
+            setSelectedEmirate(emirateId);
+          }
+        }
+
+        if (areaParam) {
+          const matchedCity = cityRes.data.find((c: any) => c.name.toLowerCase() === areaParam.toLowerCase());
+          if (matchedCity) {
+            cityId = matchedCity.id.toString();
+            setSelectedCity(cityId);
+          }
+        }
+
+        if (categoryIdParam) {
+          const matchedGs = catRes.data.find((s: any) => s.id.toString() === categoryIdParam);
+          if (matchedGs) {
+            globalServiceId = matchedGs.id.toString();
+            setSelectedGlobalService(globalServiceId);
+            setSearchQuery(matchedGs.name);
+          }
+        } else if (qParam) {
+          setSearchQuery(qParam);
+          const matchedGs = catRes.data.find((s: any) => s.name.toLowerCase() === qParam.toLowerCase());
+          if (matchedGs) {
+            globalServiceId = matchedGs.id.toString();
+            setSelectedGlobalService(globalServiceId);
+          }
+        }
       } catch (err) {
         console.error("Failed to fetch catalog:", err);
       }
@@ -56,6 +99,8 @@ export default function Deals() {
   
   const [isEmirateOpen, setIsEmirateOpen] = useState(false);
   const [isCityOpen, setIsCityOpen] = useState(false);
+  const [isServiceOpen, setIsServiceOpen] = useState(false);
+  const serviceRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -64,6 +109,9 @@ export default function Deals() {
       }
       if (cityRef.current && !cityRef.current.contains(event.target as Node)) {
         setIsCityOpen(false);
+      }
+      if (serviceRef.current && !serviceRef.current.contains(event.target as Node)) {
+        setIsServiceOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -76,8 +124,11 @@ export default function Deals() {
       let url = "/deals/?";
       if (selectedEmirate) url += `emirate_id=${selectedEmirate}&`;
       if (selectedCity) url += `city_id=${selectedCity}&`;
-      if (selectedGlobalService) url += `category_id=${selectedGlobalService}&`;
-      if (searchQuery) url += `q=${encodeURIComponent(searchQuery)}&`;
+      if (selectedGlobalService) {
+        url += `category_id=${selectedGlobalService}&`;
+      } else if (searchQuery) {
+        url += `q=${encodeURIComponent(searchQuery)}&`;
+      }
 
       const response = await api.get(url);
       setDeals(response.data);
@@ -121,27 +172,44 @@ export default function Deals() {
       <main className="flex-grow pt-28 md:pt-32 pb-20 md:pb-24 px-4 sm:px-6 md:px-10 lg:px-12 max-w-[1200px] mx-auto w-full">
         {/* Search Bar */}
         <div className="w-full mx-auto bg-[#1a1a1a] rounded-2xl md:rounded-full border border-[#333] flex flex-col md:flex-row items-center p-2 md:p-1.5 mb-12 md:mb-20 shadow-xl transition-all">
-          <div className="flex items-center flex-1 w-full pl-4 md:pl-6 gap-3 py-3 md:py-0">
+          <div className="flex items-center flex-1 w-full pl-4 md:pl-6 gap-3 py-3 md:py-0 relative" ref={serviceRef}>
             <Search className="w-5 h-5 text-white/50 shrink-0" strokeWidth={2} />
-            {/* Global Services Dropdown */}
             <input
               type="text"
-              list="global-services-list"
               placeholder="What service do you need?"
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
-                // Try to find a matching global service to set ID
-                const matched = globalServices.find(s => s.name.toLowerCase() === e.target.value.toLowerCase());
-                setSelectedGlobalService(matched ? matched.id.toString() : "");
+                setIsServiceOpen(true);
+                setSelectedGlobalService("");
               }}
+              onFocus={() => setIsServiceOpen(true)}
               className="w-full bg-transparent border-0 outline-none text-white placeholder-[#777] text-[14px] md:text-[15px] font-normal focus:ring-0"
             />
-            <datalist id="global-services-list">
-              {globalServices.map((gs) => (
-                <option key={gs.id} value={gs.name} />
-              ))}
-            </datalist>
+            {isServiceOpen && searchQuery && (
+              <div className="absolute left-0 right-0 top-full mt-2 sm:mt-6 rounded-2xl bg-[#1c1c1c] border border-[#333] p-2 shadow-2xl z-50 flex flex-col gap-1 max-h-[250px] overflow-y-auto custom-scrollbar">
+                {globalServices.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase())).length > 0 ? (
+                  globalServices
+                    .filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                    .map((service) => (
+                      <button
+                        key={service.id}
+                        type="button"
+                        onClick={() => {
+                          setSearchQuery(service.name);
+                          setSelectedGlobalService(service.id.toString());
+                          setIsServiceOpen(false);
+                        }}
+                        className="w-full text-left px-4 py-2.5 text-sm rounded-xl transition-all duration-150 text-[#D4D2CD] hover:text-white hover:bg-white/5"
+                      >
+                        {service.name}
+                      </button>
+                    ))
+                ) : (
+                  <div className="px-4 py-2.5 text-sm text-[#888]">No matching services found.</div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Dividers and Dropdowns */}
