@@ -98,7 +98,7 @@ export default function AdminDashboard() {
     setLoading(true);
     try {
       if (activeTab === "Dashboard") {
-        const res = await api.get("/zQ8pL3mX9vN2/dashboard");
+        const res = await api.get("/admin/dashboard");
         setStats(res.data);
       } else if (activeTab === "Partners" || activeTab === "Verify Partner" || activeTab === "Suspended") {
         const res = await api.get("/admin/partners");
@@ -566,36 +566,37 @@ export default function AdminDashboard() {
 
             <div className="flex flex-col gap-3">
               {filteredLogs.map((l) => {
-                let actorDisplay = "";
-                if (l.actor_role === "ADMIN") {
-                  actorDisplay = "Admin";
-                } else if (l.actor_role === "MODERATOR") {
-                  actorDisplay = `Mod: ${l.actor_name} (ID: ${l.actor_id})`;
-                } else if (l.actor_name && l.actor_name !== "System") {
-                  actorDisplay = `${l.actor_name} (ID: ${l.actor_id})`;
+                let actorRoleDisplay = l.actor_role === "ADMIN" ? "admin" : (l.actor_role === "MODERATOR" ? "mod" : "system");
+                const actorNameStr = l.actor_name && l.actor_name !== "System" ? l.actor_name : "System";
+                const actorIdStr = l.actor_id ? l.actor_id : "N/A";
+                
+                const actorPrefix = l.actor_role === "ADMIN" ? "admin" : `${actorRoleDisplay} - (${actorNameStr} - (${actorIdStr}))`;
+                
+                let mainText = "";
+                if (l.target_partner_name) {
+                  let actionText = (l.action || "").toLowerCase().replace(/_/g, ' ');
+                  if (l.action === "VERIFY_PARTNER") actionText = "verified";
+                  else if (l.action === "SUSPEND_PARTNER") actionText = "suspended";
+                  else if (l.action === "BAN_PARTNER") actionText = "banned";
+                  
+                  mainText = `${actorPrefix} ${actionText} (${l.target_partner_name} - (${l.target_partner_id}))`;
                 } else {
-                  actorDisplay = l.user_id ? `User (ID: ${l.user_id})` : "System";
+                  mainText = `${actorPrefix} performed action`;
                 }
 
                 return (
                   <div key={l.id} className="bg-[#151515] border border-[#222] rounded-xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-0 hover:bg-[#1a1a1a] transition-colors shadow-sm">
-                    <div className="flex flex-col gap-1.5 text-[#e5e5e5] text-[14px] sm:text-[15px] font-light font-sans">
-                      <div>
-                        <span className="font-bold text-[#d4933a] mr-2">[{l.action}]</span>
-                        {l.description}
+                    <div className="flex flex-col gap-1 text-[#e5e5e5] text-[14px] sm:text-[15px] font-sans">
+                      <div className="font-medium text-white/90">
+                        {mainText}
                       </div>
-                      <div className="flex flex-wrap items-center gap-x-4 text-xs text-gray-500 font-sans">
-                        <span>by <strong className="text-gray-400 font-semibold">{actorDisplay}</strong></span>
-                        {l.target_partner_name && (
-                          <>
-                            <span className="w-1.5 h-1.5 rounded-full bg-white/10" />
-                            <span>on Partner: <strong className="text-[#d4933a]/80 font-semibold">{l.target_partner_name} (ID: {l.target_partner_id})</strong></span>
-                          </>
-                        )}
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="font-bold text-[#d4933a] text-xs tracking-wider">[{l.action}]</span>
+                        <span className="text-[#888] text-xs truncate max-w-[300px] sm:max-w-md">{l.description}</span>
                       </div>
                     </div>
                     <span className="text-[#888] text-[11px] sm:text-[12px] uppercase tracking-wider shrink-0 pl-0 sm:pl-4">
-                      {new Date(l.timestamp).toLocaleString()}
+                      {new Date(l.timestamp).toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
                 );
@@ -898,9 +899,11 @@ export default function AdminDashboard() {
 
       {/* Mobile Header (Visible only on small screens) */}
       <div className="lg:hidden fixed top-0 left-0 w-full bg-[#0f0f0f] border-b border-[#222] flex items-center justify-between p-4 z-50">
-        <h1 className="text-xl font-bold italic tracking-wide">
-          <span className="text-white">SERV</span><span className="text-[#d4933a]">EASE</span>
-        </h1>
+        <Link href="/">
+          <h1 className="text-xl font-bold italic tracking-wide cursor-pointer hover:opacity-80 transition-opacity">
+            <span className="text-white">SERV</span><span className="text-[#d4933a]">EASE</span>
+          </h1>
+        </Link>
         <button
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           className="text-white p-2 bg-[#222] rounded-lg"
@@ -925,9 +928,11 @@ export default function AdminDashboard() {
       `}>
         {/* Logo */}
         <div className="p-8 hidden lg:block">
-          <h1 className="text-[28px] font-bold italic tracking-wide">
-            <span className="text-white">SERV</span><span className="text-[#d4933a]">EASE</span>
-          </h1>
+          <Link href="/">
+            <h1 className="text-[28px] font-bold italic tracking-wide cursor-pointer hover:opacity-80 transition-opacity">
+              <span className="text-white">SERV</span><span className="text-[#d4933a]">EASE</span>
+            </h1>
+          </Link>
         </div>
 
         <div className="p-8 lg:hidden mt-12 border-b border-[#222] mb-4">
