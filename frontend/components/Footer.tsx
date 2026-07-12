@@ -11,7 +11,7 @@ export default function Footer() {
             <Link href="/" className="inline-flex items-center gap-1">
               <span className="text-2xl font-black italic tracking-wide text-white uppercase select-none">
                 SERV
-                <span className="text-gold font-extrabold text-glow">EASE</span>
+                <span className="text-gold font-extrabold text-glow">IZ</span>
               </span>
             </Link>
             <p className="text-white/40 font-sans text-sm leading-relaxed max-w-[280px]">
@@ -59,15 +59,21 @@ export default function Footer() {
             </h3>
             <div className="flex flex-col gap-2">
               <p className="text-white/50 text-sm font-sans">
-                Phone: <span className="text-white/70">999 999 999</span>
+                Phone:{" "}
+                <a
+                  href="tel:+97143450870"
+                  className="text-white/70 hover:text-gold transition-colors"
+                >
+                  +971 43450870
+                </a>
               </p>
               <p className="text-white/50 text-sm font-sans">
                 Email:{" "}
                 <a
-                  href="mailto:contact@servease.com"
+                  href="mailto:info@servizuae.com"
                   className="text-white/70 hover:text-gold transition-colors"
                 >
-                  contact@servease.com
+                  info@servizuae.com
                 </a>
               </p>
             </div>
@@ -79,7 +85,7 @@ export default function Footer() {
       <div className="border-t border-white/5">
         <div className="w-full mx-auto px-6 lg:px-12 py-5 flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="text-white/30 text-xs font-sans">
-            © 2026 SERVEASE. All rights reserved
+            © 2026 SERVIZ. All rights reserved
           </p>
           <Link
             href="/privacy"

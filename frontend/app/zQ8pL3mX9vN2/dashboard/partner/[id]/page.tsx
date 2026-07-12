@@ -157,7 +157,7 @@ export default function PartnerDetailsPage() {
                     <p className="text-white text-[15px]">{partner.emirate}</p>
                   </div>
                   <div>
-                    <p className="text-[#888] text-[10px] uppercase font-bold tracking-widest mb-1">City/Area</p>
+                    <p className="text-[#888] text-[10px] uppercase font-bold tracking-widest mb-1">Area</p>
                     <p className="text-white text-[15px]">{partner.city}</p>
                   </div>
                 </div>

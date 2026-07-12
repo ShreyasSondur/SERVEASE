@@ -150,7 +150,7 @@ export default function BecomePartner() {
       return;
     }
     if (!formData.city) {
-      setError("Please select your City.");
+      setError("Please select your Area.");
       return;
     }
     if (!formData.emirates_id_url) {
@@ -312,7 +312,7 @@ export default function BecomePartner() {
               {/* City */}
               <div className="flex flex-col gap-1 flex-1">
                 <label className="text-[#888] text-[10px] sm:text-[11px] font-semibold tracking-wider uppercase pl-1">
-                  City
+                  Area
                 </label>
                 <div className="relative w-full" ref={cityRef}>
                   <button
@@ -327,7 +327,7 @@ export default function BecomePartner() {
                     <div className="flex items-center gap-2 text-left truncate">
                       <Target className="w-4 h-4 text-white/50 shrink-0" strokeWidth={1.5} />
                       <span className={formData.city ? "text-white" : "text-[#777]"}>
-                        {formData.city || "Select City"}
+                        {formData.city || "Select Area"}
                       </span>
                     </div>
                     <ChevronDown className={`w-4 h-4 text-[#888] shrink-0 transition-transform duration-300 ${isCityOpen ? "rotate-180" : ""}`} />
@@ -340,7 +340,7 @@ export default function BecomePartner() {
                           const em = emirates.find(e => e.name === formData.emirate);
                           return em && c.emirate_id === em.id;
                         }).length === 0 ? (
-                          <div className="text-[#666] text-xs py-2 text-center">No cities found</div>
+                          <div className="text-[#666] text-xs py-2 text-center">No areas found</div>
                         ) : (
                           cities
                             .filter(c => {

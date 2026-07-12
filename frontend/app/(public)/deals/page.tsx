@@ -34,7 +34,7 @@ export default function Deals() {
   const [selectedGlobalService, setSelectedGlobalService] = useState("");
 
   useEffect(() => {
-    const fetchCatalog = async () => {
+    const fetchCatalogAndDeals = async () => {
       try {
         const [emRes, cityRes, catRes] = await Promise.all([
           api.get("/catalog/emirates"),
@@ -87,11 +87,33 @@ export default function Deals() {
             setSelectedGlobalService(globalServiceId);
           }
         }
+
+        const token = localStorage.getItem("token");
+        setIsLoggedIn(!!token);
+        setCheckedAuth(true);
+
+        setLoading(true);
+        let url = `/deals/?page=1&limit=${limit}&`;
+        if (emirateId) url += `emirate_id=${emirateId}&`;
+        if (cityId) url += `city_id=${cityId}&`;
+        if (globalServiceId) {
+          url += `category_id=${globalServiceId}&`;
+        } else if (qParam) {
+          url += `q=${encodeURIComponent(qParam)}&`;
+        }
+
+        const response = await api.get(url);
+        setDeals(response.data.items || []);
+        setTotalItems(response.data.total || 0);
+        setTotalPages(Math.ceil((response.data.total || 0) / limit) || 1);
+        setCurrentPage(1);
       } catch (err) {
-        console.error("Failed to fetch catalog:", err);
+        console.error("Failed to load catalog and search deals:", err);
+      } finally {
+        setLoading(false);
       }
     };
-    fetchCatalog();
+    fetchCatalogAndDeals();
   }, []);
 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -151,12 +173,7 @@ export default function Deals() {
     }
   };
 
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    setIsLoggedIn(!!token);
-    setCheckedAuth(true);
-    fetchDeals();
-  }, []);
+
 
   const handleSearch = () => {
     fetchDeals(1);
@@ -172,7 +189,7 @@ export default function Deals() {
   };
 
   const currentEmirateName = emirates.find(e => e.id.toString() === selectedEmirate)?.name || "All Emirates";
-  const currentCityName = cities.find(c => c.id.toString() === selectedCity)?.name || "All Cities";
+  const currentCityName = cities.find(c => c.id.toString() === selectedCity)?.name || "All Areas";
 
   return (
     <div className="relative min-h-screen bg-[#111111] flex flex-col w-full font-sans">
@@ -180,7 +197,13 @@ export default function Deals() {
 
       <main className="flex-grow pt-28 md:pt-32 pb-20 md:pb-24 px-4 sm:px-6 md:px-10 lg:px-12 max-w-[1200px] mx-auto w-full">
         {/* Search Bar */}
-        <div className="w-full mx-auto bg-[#1a1a1a] rounded-2xl md:rounded-full border border-[#333] flex flex-col md:flex-row items-center p-2 md:p-1.5 mb-12 md:mb-20 shadow-xl transition-all">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleSearch();
+          }}
+          className="w-full mx-auto bg-[#1a1a1a] rounded-2xl md:rounded-full border border-[#333] flex flex-col md:flex-row items-center p-2 md:p-1.5 mb-12 md:mb-20 shadow-xl transition-all"
+        >
           <div className="flex items-center flex-1 w-full pl-4 md:pl-6 gap-3 py-3 md:py-0 relative" ref={serviceRef}>
             <Search className="w-5 h-5 text-white/50 shrink-0" strokeWidth={2} />
             <input
@@ -279,7 +302,7 @@ export default function Deals() {
               )}
             </div>
 
-            {/* City Dropdown */}
+            {/* Area Dropdown */}
             <div className="relative flex items-center justify-between md:justify-start w-full md:w-[170px] gap-3 px-4 md:px-6 py-3.5 md:py-3 text-white h-full" ref={cityRef}>
               <button
                 type="button"
@@ -312,7 +335,7 @@ export default function Deals() {
                       : "text-[#D4D2CD] hover:text-white hover:bg-white/5"
                       }`}
                   >
-                    All Cities
+                    All Areas
                   </button>
                   {cities
                     .filter(c => c.emirate_id.toString() === selectedEmirate)
@@ -337,13 +360,13 @@ export default function Deals() {
             </div>
 
             <div className="w-full md:w-auto p-1.5 md:p-0 md:ml-2">
-              <button onClick={handleSearch} className="cursor-pointer w-full md:w-auto bg-[#d4933a] hover:bg-[#c28532] text-white px-7 py-3 rounded-xl md:rounded-full flex items-center justify-center gap-2 text-[14px] md:text-[15px] font-medium transition-colors">
+              <button type="submit" className="cursor-pointer w-full md:w-auto bg-[#d4933a] hover:bg-[#c28532] text-white px-7 py-3 rounded-xl md:rounded-full flex items-center justify-center gap-2 text-[14px] md:text-[15px] font-medium transition-colors">
                 Search
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>
           </div>
-        </div>
+        </form>
 
         {/* Deals List */}
         <div className="flex flex-col gap-10 md:gap-14">

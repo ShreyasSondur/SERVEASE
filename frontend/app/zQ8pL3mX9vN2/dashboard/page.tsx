@@ -20,7 +20,9 @@ import {
   Download,
   PlusCircle,
   ShieldAlert,
-  Trash2
+  Trash2,
+  Eye,
+  EyeOff
 } from "lucide-react";
 
 export default function AdminDashboard() {
@@ -111,7 +113,7 @@ export default function AdminDashboard() {
         setLogs(res.data);
       } else if (activeTab === "Add Catalog") {
         const [emRes, cityRes, servRes] = await Promise.all([
-          api.get("/catalog/emirates"),
+          api.get("/catalog/emirates?include_hidden=true"),
           api.get("/catalog/cities"),
           api.get("/catalog/services")
         ]);
@@ -228,11 +230,11 @@ export default function AdminDashboard() {
     }
     try {
       await api.post("/admin/cities", { name: cityName, emirate_id: parseInt(cityEmirateId) });
-      setCatalogMsg({ type: "success", text: "City added successfully" });
+      setCatalogMsg({ type: "success", text: "Area added successfully" });
       setCityName("");
       fetchData();
     } catch (e) {
-      setCatalogMsg({ type: "error", text: "Failed to add city" });
+      setCatalogMsg({ type: "error", text: "Failed to add area" });
     }
   };
 
@@ -249,7 +251,7 @@ export default function AdminDashboard() {
   };
 
   const deleteEmirate = async (id: number) => {
-    if (confirm("Are you sure you want to delete this emirate? All cities under this emirate, as well as partner services and deals in those cities, will be deleted permanently.")) {
+    if (confirm("Are you sure you want to delete this emirate? All areas under this emirate, as well as partner services and deals in those areas, will be deleted permanently.")) {
       try {
         await api.delete(`/admin/emirates/${id}`);
         setCatalogMsg({ type: "success", text: "Emirate deleted successfully" });
@@ -260,14 +262,36 @@ export default function AdminDashboard() {
     }
   };
 
+  const toggleEmirateVisibility = async (id: number) => {
+    // Save original state for potential rollback
+    const originalEmirates = [...catalogEmirates];
+
+    // Optimistically update state instantly
+    setCatalogEmirates(prev =>
+      prev.map(e => e.id === id ? { ...e, is_visible: !e.is_visible } : e)
+    );
+
+    try {
+      const res = await api.put(`/admin/emirates/${id}/toggle-visibility`);
+      // Update with exact backend value (redundancy check)
+      setCatalogEmirates(prev =>
+        prev.map(e => e.id === id ? { ...e, is_visible: res.data.is_visible } : e)
+      );
+    } catch (err) {
+      // Rollback to original state on network failure
+      setCatalogEmirates(originalEmirates);
+      setCatalogMsg({ type: "error", text: "Failed to update Emirate visibility" });
+    }
+  };
+
   const deleteCity = async (id: number) => {
-    if (confirm("Are you sure you want to delete this city/area? All partner services and deals in this city/area will be deleted permanently.")) {
+    if (confirm("Are you sure you want to delete this area? All partner services and deals in this area will be deleted permanently.")) {
       try {
         await api.delete(`/admin/cities/${id}`);
-        setCatalogMsg({ type: "success", text: "City deleted successfully" });
+        setCatalogMsg({ type: "success", text: "Area deleted successfully" });
         fetchData();
       } catch (e) {
-        setCatalogMsg({ type: "error", text: "Failed to delete city" });
+        setCatalogMsg({ type: "error", text: "Failed to delete area" });
       }
     }
   };
@@ -808,10 +832,10 @@ export default function AdminDashboard() {
                   </form>
                 </div>
 
-                {/* Add City Form */}
+                {/* Add Area Form */}
                 <div className="bg-[#151515] border border-[#222] rounded-2xl p-6 shadow-lg">
-                  <h3 className="text-[#d4933a] text-lg font-medium mb-1">Cities / Areas</h3>
-                  <p className="text-[#888] text-xs mb-6">Add specific cities or areas within an Emirate.</p>
+                  <h3 className="text-[#d4933a] text-lg font-medium mb-1">Areas</h3>
+                  <p className="text-[#888] text-xs mb-6">Add specific areas within an Emirate.</p>
 
                   <form onSubmit={addCity} className="flex flex-col gap-4">
                     <div className="flex flex-col sm:flex-row gap-4">
@@ -823,12 +847,12 @@ export default function AdminDashboard() {
                         </select>
                       </div>
                       <div className="w-full sm:w-1/2">
-                        <label className="text-[#888] text-[10px] uppercase font-bold tracking-widest mb-1.5 block pl-1">City Name</label>
+                        <label className="text-[#888] text-[10px] uppercase font-bold tracking-widest mb-1.5 block pl-1">Area Name</label>
                         <input value={cityName} onChange={e => setCityName(e.target.value)} required placeholder="e.g. Marina" className="w-full bg-[#111] border border-[#333] focus:border-[#d4933a] rounded-xl px-4 py-3 text-white outline-none text-[13px] transition-colors" />
                       </div>
                     </div>
                     <button type="submit" className="mt-2 bg-[#d4933a] hover:bg-[#c28532] text-white py-3 rounded-xl text-[14px] font-bold transition-colors w-full sm:w-auto self-end px-8">
-                      Add City
+                      Add Area
                     </button>
                   </form>
                 </div>
@@ -840,14 +864,35 @@ export default function AdminDashboard() {
                     {catalogEmirates.map(emirate => (
                       <div key={emirate.id} className="border border-[#2a2a2a] rounded-xl overflow-hidden shrink-0">
                         <div className="bg-[#1a1a1a] px-4 py-3 border-b border-[#2a2a2a] flex items-center justify-between">
-                          <span className="text-[#d4933a] font-bold text-sm tracking-wide">{emirate.name}</span>
-                          <button
-                            onClick={() => deleteEmirate(emirate.id)}
-                            className="text-[#888] hover:text-[#ff4d4d] hover:bg-[#252525] p-1.5 rounded-lg transition-colors"
-                            title="Delete Emirate"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <span className={`font-bold text-sm tracking-wide ${emirate.is_visible ? "text-[#d4933a]" : "text-white/40 line-through"}`}>{emirate.name}</span>
+                            {!emirate.is_visible && (
+                              <span className="text-[10px] bg-red-500/10 text-red-500 border border-red-500/20 px-1.5 py-0.5 rounded-md font-medium">Hidden</span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => toggleEmirateVisibility(emirate.id)}
+                              className={`relative inline-flex h-5.5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none mr-1.5 self-center ${
+                                emirate.is_visible ? "bg-[#d4933a]" : "bg-[#252525]"
+                              }`}
+                              title={emirate.is_visible ? "Hide Emirate from site" : "Show Emirate on site"}
+                            >
+                              <span
+                                className={`pointer-events-none inline-block h-4.5 w-4.5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                                  emirate.is_visible ? "translate-x-4.5" : "translate-x-0"
+                                }`}
+                              />
+                            </button>
+                            <button
+                              onClick={() => deleteEmirate(emirate.id)}
+                              className="text-[#888] hover:text-[#ff4d4d] hover:bg-[#252525] p-1.5 rounded-lg transition-colors"
+                              title="Delete Emirate"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
                         </div>
                         <div className="bg-[#111] p-3 flex flex-wrap gap-2">
                           {catalogCities.filter(c => c.emirate_id === emirate.id).map(city => (
@@ -856,14 +901,14 @@ export default function AdminDashboard() {
                               <button
                                 onClick={() => deleteCity(city.id)}
                                 className="text-gray-500 hover:text-[#ff4d4d] hover:bg-[#333] p-0.5 rounded transition-colors"
-                                title="Delete City"
+                                title="Delete Area"
                               >
                                 <X className="w-3.5 h-3.5" />
                               </button>
                             </span>
                           ))}
                           {catalogCities.filter(c => c.emirate_id === emirate.id).length === 0 && (
-                            <span className="text-[#555] text-xs italic px-2">No cities added yet</span>
+                            <span className="text-[#555] text-xs italic px-2">No areas added yet</span>
                           )}
                         </div>
                       </div>
@@ -901,7 +946,7 @@ export default function AdminDashboard() {
       <div className="lg:hidden fixed top-0 left-0 w-full bg-[#0f0f0f] border-b border-[#222] flex items-center justify-between p-4 z-50">
         <Link href="/">
           <h1 className="text-xl font-bold italic tracking-wide cursor-pointer hover:opacity-80 transition-opacity">
-            <span className="text-white">SERV</span><span className="text-[#d4933a]">EASE</span>
+            <span className="text-white">SERV</span><span className="text-[#d4933a]">IZ</span>
           </h1>
         </Link>
         <button

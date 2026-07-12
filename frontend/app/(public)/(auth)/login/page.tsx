@@ -49,6 +49,14 @@ export default function Login() {
         },
       });
 
+      if (response.data.requires_otp) {
+        sessionStorage.setItem("temp_token", response.data.temp_token);
+        const urlParams = new URLSearchParams(window.location.search);
+        const redirectPath = urlParams.get("redirect") || "/zQ8pL3mX9vN2/dashboard";
+        window.location.href = `/login/otp?redirect=${encodeURIComponent(redirectPath)}`;
+        return;
+      }
+
       if (response.data.access_token) {
         localStorage.setItem("token", response.data.access_token);
         const urlParams = new URLSearchParams(window.location.search);

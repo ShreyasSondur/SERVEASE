@@ -11,12 +11,6 @@ export default function Home() {
       <Navbar />
       <main className="flex-grow">
         <Hero />
-        <div className="w-full h-4 sm:h-6 lg:h-8"></div>
-        <PopularServices />
-        <div className="w-full h-4 sm:h-6 lg:h-8"></div>
-        <BecomePartner />
-        <div className="w-full h-4 sm:h-6 lg:h-8"></div>
-        <CustomerFeedback />
       </main>
       <Footer />
     </div>

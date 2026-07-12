@@ -558,9 +558,9 @@ export default function Dashboard() {
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[#888] text-[10px] sm:text-[11px] font-semibold tracking-wider uppercase pl-1">City / Area</label>
+                  <label className="text-[#888] text-[10px] sm:text-[11px] font-semibold tracking-wider uppercase pl-1">Area</label>
                   <select required disabled={!selectedEmirate} value={serviceForm.city_id} onChange={e => setServiceForm({...serviceForm, city_id: e.target.value})} className="w-full bg-[#1c1c1c] border border-[#2a2a2a] focus:border-[#d4933a] focus:bg-[#222] text-[#aaa] rounded-xl py-3.5 px-4 outline-none text-[13px] transition-colors focus:ring-0 disabled:opacity-50">
-                    <option value="" className="bg-[#131313]">Select City...</option>
+                    <option value="" className="bg-[#131313]">Select Area...</option>
                     {cities.filter(c => c.emirate_id.toString() === selectedEmirate).map(c => <option key={c.id} value={c.id} className="bg-[#131313] text-white">{c.name}</option>)}
                   </select>
                 </div>
@@ -685,9 +685,9 @@ export default function Dashboard() {
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[#888] text-[10px] sm:text-[11px] font-semibold tracking-wider uppercase pl-1">City / Area</label>
+                  <label className="text-[#888] text-[10px] sm:text-[11px] font-semibold tracking-wider uppercase pl-1">Area</label>
                   <select required disabled={!selectedEditEmirate} value={editServiceForm.city_id} onChange={e => setEditServiceForm({...editServiceForm, city_id: e.target.value})} className="w-full bg-[#1c1c1c] border border-[#2a2a2a] focus:border-[#d4933a] focus:bg-[#222] text-[#aaa] rounded-xl py-3.5 px-4 outline-none text-[13px] transition-colors focus:ring-0 disabled:opacity-50">
-                    <option value="" className="bg-[#131313]">Select City...</option>
+                    <option value="" className="bg-[#131313]">Select Area...</option>
                     {cities.filter(c => c.emirate_id.toString() === selectedEditEmirate).map(c => <option key={c.id} value={c.id} className="bg-[#131313] text-white">{c.name}</option>)}
                   </select>
                 </div>
@@ -819,9 +819,9 @@ export default function Dashboard() {
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[#888] text-[10px] sm:text-[11px] font-semibold tracking-wider uppercase pl-1">City / Area</label>
+                  <label className="text-[#888] text-[10px] sm:text-[11px] font-semibold tracking-wider uppercase pl-1">Area</label>
                   <select required disabled={!selectedDealEmirate} value={dealForm.city_id} onChange={e => setDealForm({...dealForm, city_id: e.target.value})} className="w-full bg-[#1c1c1c] border border-[#2a2a2a] focus:border-[#d4933a] focus:bg-[#222] text-[#aaa] rounded-xl py-3.5 px-4 outline-none text-[13px] transition-colors focus:ring-0 disabled:opacity-50">
-                    <option value="" className="bg-[#131313]">Select City...</option>
+                    <option value="" className="bg-[#131313]">Select Area...</option>
                     {cities.filter(c => c.emirate_id.toString() === selectedDealEmirate).map(c => <option key={c.id} value={c.id} className="bg-[#131313] text-white">{c.name}</option>)}
                   </select>
                 </div>

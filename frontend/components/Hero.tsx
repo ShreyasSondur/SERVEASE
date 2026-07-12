@@ -16,6 +16,7 @@ export default function Hero() {
   const [selectedEmirateId, setSelectedEmirateId] = useState("");
   const [selectedCityId, setSelectedCityId] = useState("");
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
 
   const [isEmirateOpen, setIsEmirateOpen] = useState(false);
   const [isCityOpen, setIsCityOpen] = useState(false);
@@ -28,6 +29,7 @@ export default function Hero() {
 
   // Close dropdown when clicking outside
   useEffect(() => {
+    setMounted(true);
     function handleClickOutside(event: MouseEvent) {
       if (emirateRef.current && !emirateRef.current.contains(event.target as Node)) {
         setIsEmirateOpen(false);
@@ -205,7 +207,7 @@ export default function Hero() {
                 <div className="relative flex items-center justify-between sm:justify-start w-full sm:w-auto px-4 py-3 sm:py-0 min-w-[150px]" ref={emirateRef}>
                   <button
                     type="button"
-                    disabled={loading}
+                    disabled={mounted ? loading : false}
                     onClick={() => {
                       setIsEmirateOpen(!isEmirateOpen);
                       setIsCityOpen(false);
@@ -259,7 +261,7 @@ export default function Hero() {
                   )}
                 </div>
 
-                {/* Right Section: City Dropdown */}
+                {/* Right Section: Area Dropdown */}
                 <div className="relative flex items-center justify-between sm:justify-start w-full sm:w-auto px-4 py-3 sm:py-0 border-t sm:border-t-0 sm:border-l border-[#333] min-w-[180px]" ref={cityRef}>
                   <button
                     type="button"
@@ -272,7 +274,7 @@ export default function Hero() {
                   >
                     <div className="flex items-center gap-2">
                       <Target className="w-4 h-4 text-[#888]" strokeWidth={1.5} />
-                      <span className="truncate">{cities.find(c => c.id.toString() === selectedCityId)?.name || "All Cities"}</span>
+                      <span className="truncate">{cities.find(c => c.id.toString() === selectedCityId)?.name || "All Areas"}</span>
                     </div>
                     <ChevronDown
                       className={`w-3.5 h-3.5 text-[#888] transition-transform duration-300 ${isCityOpen ? "rotate-180" : ""
@@ -280,7 +282,7 @@ export default function Hero() {
                     />
                   </button>
 
-                  {/* City Dropdown Menu */}
+                  {/* Area Dropdown Menu */}
                   {isCityOpen && selectedEmirateId && (
                     <div className="absolute left-0 right-0 bottom-full sm:bottom-auto sm:top-full mb-2 sm:mt-6 sm:w-[220px] max-h-[300px] overflow-y-auto rounded-2xl bg-[#1c1c1c] border border-[#333] p-2 shadow-2xl z-50 flex flex-col gap-1 custom-scrollbar">
                       <button
@@ -294,7 +296,7 @@ export default function Hero() {
                           : "text-[#D4D2CD] hover:text-white hover:bg-white/5"
                           }`}
                       >
-                        All Cities
+                        All Areas
                       </button>
                       {cities.filter(c => c.emirate_id.toString() === selectedEmirateId).map((city) => (
                         <button
