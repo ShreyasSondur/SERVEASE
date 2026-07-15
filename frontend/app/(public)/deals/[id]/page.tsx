@@ -214,10 +214,7 @@ export default function DealDetail() {
                   <span className="text-[#888]">Service Category</span>
                   <span className="text-white font-medium text-right">{service.category?.name || "Global Service"}</span>
                 </div>
-                <div className="flex justify-between items-center text-[13px] sm:text-sm">
-                  <span className="text-[#888]">Emergency Service</span>
-                  <span className="text-white font-medium text-right">Available 24/7</span>
-                </div>
+
                 <div className="flex justify-between items-center text-[13px] sm:text-sm">
                   <span className="text-[#888]">Location</span>
                   <span className="text-white font-medium text-right flex items-center gap-1 justify-end">

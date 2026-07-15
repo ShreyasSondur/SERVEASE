@@ -197,11 +197,11 @@ export default function ServiceDetail() {
                 </div>
                 <div className="flex justify-between items-center text-[13px] sm:text-sm">
                   <span className="text-[#888]">Emergency Service</span>
-                  <span className="text-white font-medium text-right">Available 24/7</span>
+                  <span className="text-white font-medium text-right">{service.emergency_service || "Available 24/7"}</span>
                 </div>
                 <div className="flex justify-between items-center text-[13px] sm:text-sm">
                   <span className="text-[#888]">Provider Type</span>
-                  <span className="text-white font-medium text-right">Licensed Company</span>
+                  <span className="text-white font-medium text-right">{service.provider_type || "Licensed Company"}</span>
                 </div>
               </div>
             </div>

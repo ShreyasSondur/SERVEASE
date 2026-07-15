@@ -6,7 +6,7 @@ import Footer from "@/components/Footer";
 import {
   Search, MapPin, ChevronDown, ArrowRight,
   ChevronLeft, ChevronRight, BadgeCheck,
-  Calendar, Target, Star, X, MessageCircle, Phone, Briefcase
+  Calendar, Target, Star, X, MessageCircle, Phone, Briefcase, Filter
 } from "lucide-react";
 import Link from "next/link";
 import api from "@/lib/api";
@@ -32,6 +32,7 @@ export default function Services() {
   const [selectedEmirate, setSelectedEmirate] = useState("");
   const [selectedCity, setSelectedCity] = useState("");
   const [selectedGlobalService, setSelectedGlobalService] = useState("");
+  const [selectedSort, setSelectedSort] = useState("");
 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [checkedAuth, setCheckedAuth] = useState(false);
@@ -41,9 +42,11 @@ export default function Services() {
 
   const emirateRef = useRef<HTMLDivElement>(null);
   const cityRef = useRef<HTMLDivElement>(null);
-  
+  const sortRef = useRef<HTMLDivElement>(null);
+
   const [isEmirateOpen, setIsEmirateOpen] = useState(false);
   const [isCityOpen, setIsCityOpen] = useState(false);
+  const [isSortOpen, setIsSortOpen] = useState(false);
   const [isServiceOpen, setIsServiceOpen] = useState(false);
   const serviceRef = useRef<HTMLDivElement>(null);
 
@@ -54,6 +57,9 @@ export default function Services() {
       }
       if (cityRef.current && !cityRef.current.contains(event.target as Node)) {
         setIsCityOpen(false);
+      }
+      if (sortRef.current && !sortRef.current.contains(event.target as Node)) {
+        setIsSortOpen(false);
       }
       if (serviceRef.current && !serviceRef.current.contains(event.target as Node)) {
         setIsServiceOpen(false);
@@ -131,6 +137,7 @@ export default function Services() {
         } else if (qParam) {
           url += `q=${encodeURIComponent(qParam)}&`;
         }
+        if (selectedSort) url += `sort=${selectedSort}&`;
 
         const response = await api.get(url);
         setServices(response.data.items || []);
@@ -156,6 +163,9 @@ export default function Services() {
         url += `category_id=${selectedGlobalService}&`;
       } else if (searchQuery) {
         url += `q=${encodeURIComponent(searchQuery)}&`;
+      }
+      if (selectedSort) {
+        url += `sort=${selectedSort}&`;
       }
 
       const response = await api.get(url);
@@ -221,6 +231,7 @@ export default function Services() {
                 {globalServices.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase())).length > 0 ? (
                   globalServices
                     .filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                    .sort((a, b) => a.name.localeCompare(b.name))
                     .map((service) => (
                       <button
                         key={service.id}
@@ -301,7 +312,7 @@ export default function Services() {
             </div>
 
             {/* Area Dropdown */}
-            <div className="relative flex items-center justify-between md:justify-start w-full md:w-[170px] gap-3 px-4 md:px-6 py-3.5 md:py-3 text-white h-full" ref={cityRef}>
+            <div className="relative flex items-center justify-between md:justify-start w-full md:w-[170px] gap-3 px-4 md:px-6 py-3.5 md:py-3 text-white border-b md:border-b-0 md:border-r border-[#333] h-full" ref={cityRef}>
               <button
                 type="button"
                 disabled={!selectedEmirate}
@@ -353,6 +364,62 @@ export default function Services() {
                         {c.name}
                       </button>
                     ))}
+                </div>
+              )}
+            </div>
+
+            {/* Sort Dropdown */}
+            <div className="relative flex items-center justify-between md:justify-start w-full md:w-[170px] gap-3 px-4 md:px-6 py-3.5 md:py-3 text-white h-full" ref={sortRef}>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsSortOpen(!isSortOpen);
+                  setIsEmirateOpen(false);
+                  setIsCityOpen(false);
+                }}
+                className="flex items-center justify-between w-full gap-3 text-left text-sm md:text-[14px] font-medium text-white hover:text-[#d4933a] transition-colors duration-200"
+              >
+                <div className="flex items-center gap-2 truncate">
+                  <Filter className="w-4 h-4 text-white/50 shrink-0" strokeWidth={1.5} />
+                  <span className="truncate">{selectedSort === "alpha_asc" ? "A to Z" : selectedSort === "alpha_desc" ? "Z to A" : "Sort By"}</span>
+                </div>
+                <ChevronDown
+                  className={`w-3.5 h-3.5 text-[#888] shrink-0 transition-transform duration-300 ${isSortOpen ? "rotate-180" : ""}`}
+                />
+              </button>
+
+              {isSortOpen && (
+                <div className="absolute left-0 right-0 md:left-4 md:right-auto top-full mt-2 md:w-[190px] rounded-2xl bg-[#1c1c1c] border border-[#333] p-2 shadow-2xl z-50 flex flex-col gap-1 custom-scrollbar">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedSort("");
+                      setIsSortOpen(false);
+                    }}
+                    className={`w-full text-left px-4 py-2.5 text-sm rounded-xl transition-all duration-150 ${selectedSort === "" ? "bg-[#d4933a]/10 text-[#d4933a] font-medium" : "text-[#D4D2CD] hover:text-white hover:bg-white/5"}`}
+                  >
+                    Relevance
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedSort("alpha_asc");
+                      setIsSortOpen(false);
+                    }}
+                    className={`w-full text-left px-4 py-2.5 text-sm rounded-xl transition-all duration-150 ${selectedSort === "alpha_asc" ? "bg-[#d4933a]/10 text-[#d4933a] font-medium" : "text-[#D4D2CD] hover:text-white hover:bg-white/5"}`}
+                  >
+                    Alphabetical (A-Z)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedSort("alpha_desc");
+                      setIsSortOpen(false);
+                    }}
+                    className={`w-full text-left px-4 py-2.5 text-sm rounded-xl transition-all duration-150 ${selectedSort === "alpha_desc" ? "bg-[#d4933a]/10 text-[#d4933a] font-medium" : "text-[#D4D2CD] hover:text-white hover:bg-white/5"}`}
+                  >
+                    Alphabetical (Z-A)
+                  </button>
                 </div>
               )}
             </div>
@@ -426,10 +493,10 @@ export default function Services() {
                       <button className="w-full bg-white hover:bg-gray-100 text-black py-2.5 md:py-3 rounded-full font-bold text-[13px] md:text-[14px] transition-colors shadow-md cursor-pointer">
                         View More
                       </button></Link>
-                     <button 
+                    <button
                       onClick={() => handleContact(service)}
                       className="w-full bg-[#d4933a] hover:bg-[#c28532] text-white py-2.5 md:py-3 rounded-full font-bold text-[13px] md:text-[14px] transition-colors shadow-lg cursor-pointer"
-                     >
+                    >
                       Contact Now
                     </button>
                   </div>
@@ -457,7 +524,7 @@ export default function Services() {
             >
               <ChevronLeft className="w-5 h-5" />
             </button>
-            
+
             {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
               <button
                 key={page}
@@ -465,11 +532,10 @@ export default function Services() {
                   fetchServices(page);
                   window.scrollTo({ top: 0, behavior: "smooth" });
                 }}
-                className={`w-10 h-10 flex items-center justify-center rounded-full text-sm font-medium transition-colors ${
-                  currentPage === page
+                className={`w-10 h-10 flex items-center justify-center rounded-full text-sm font-medium transition-colors ${currentPage === page
                     ? "bg-[#d4933a] text-white"
                     : "bg-[#222] border border-[#333] text-white hover:bg-[#333]"
-                }`}
+                  }`}
               >
                 {page}
               </button>
@@ -495,8 +561,8 @@ export default function Services() {
       {showAuthRequiredModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
           <div className="bg-[#151515] border border-[#222] rounded-3xl p-8 max-w-md w-full text-center shadow-2xl animate-fade-in relative text-white">
-            <button 
-              onClick={() => setShowAuthRequiredModal(false)} 
+            <button
+              onClick={() => setShowAuthRequiredModal(false)}
               className="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors cursor-pointer"
             >
               <X className="w-5 h-5" />
@@ -528,23 +594,23 @@ export default function Services() {
       {showContactModal && selectedServiceForContact && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
           <div className="bg-[#151515] border border-[#222] rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl animate-fade-in relative text-white">
-            <button 
+            <button
               onClick={() => {
                 setShowContactModal(false);
                 setSelectedServiceForContact(null);
-              }} 
+              }}
               className="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
-            
+
             <h3 className="text-xl font-bold tracking-wide text-white mb-2">
               Contact Provider
             </h3>
             <p className="text-[#d4933a] text-[15px] font-semibold mb-6">
               {selectedServiceForContact.partner?.business_name || `${selectedServiceForContact.partner?.first_name} ${selectedServiceForContact.partner?.last_name}`}
             </p>
-            
+
             <div className="flex flex-col gap-4 mb-8">
               <div className="flex items-center gap-3 bg-[#111] p-4 rounded-xl border border-[#222]">
                 <Phone className="w-5 h-5 text-white/50" />
@@ -553,7 +619,7 @@ export default function Services() {
                   <span className="text-[15px] font-medium">{selectedServiceForContact.partner?.phone}</span>
                 </div>
               </div>
-              
+
               {selectedServiceForContact.partner?.email && (
                 <div className="flex items-center gap-3 bg-[#111] p-4 rounded-xl border border-[#222]">
                   <span className="text-[15px] text-white/50 font-bold shrink-0">@</span>
@@ -564,15 +630,15 @@ export default function Services() {
                 </div>
               )}
             </div>
-            
+
             <div className="flex flex-col sm:flex-row gap-3">
-              <a 
+              <a
                 href={`tel:${selectedServiceForContact.partner?.phone}`}
                 className="flex-1 bg-[#222] hover:bg-[#333] border border-[#333] hover:border-[#d4933a] text-white py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-all cursor-pointer"
               >
                 <Phone className="w-4 h-4" /> Call Now
               </a>
-              <a 
+              <a
                 href={`https://wa.me/${selectedServiceForContact.partner?.phone?.replace(/\D/g, '')}`}
                 target="_blank"
                 rel="noopener noreferrer"

@@ -6,7 +6,7 @@ import Footer from "@/components/Footer";
 import {
   Search, MapPin, ChevronDown, ArrowRight,
   ChevronLeft, ChevronRight, BadgeCheck,
-  Calendar, Target, CheckCircle2, X, MessageCircle, Phone, Tag, Briefcase
+  Calendar, Target, CheckCircle2, X, MessageCircle, Phone, Tag, Briefcase, Filter
 } from "lucide-react";
 import Link from "next/link";
 import api from "@/lib/api";
@@ -32,6 +32,7 @@ export default function Deals() {
   const [selectedEmirate, setSelectedEmirate] = useState("");
   const [selectedCity, setSelectedCity] = useState("");
   const [selectedGlobalService, setSelectedGlobalService] = useState("");
+  const [selectedSort, setSelectedSort] = useState("");
 
   useEffect(() => {
     const fetchCatalogAndDeals = async () => {
@@ -101,6 +102,7 @@ export default function Deals() {
         } else if (qParam) {
           url += `q=${encodeURIComponent(qParam)}&`;
         }
+        if (selectedSort) url += `sort=${selectedSort}&`;
 
         const response = await api.get(url);
         setDeals(response.data.items || []);
@@ -124,9 +126,11 @@ export default function Deals() {
 
   const emirateRef = useRef<HTMLDivElement>(null);
   const cityRef = useRef<HTMLDivElement>(null);
+  const sortRef = useRef<HTMLDivElement>(null);
   
   const [isEmirateOpen, setIsEmirateOpen] = useState(false);
   const [isCityOpen, setIsCityOpen] = useState(false);
+  const [isSortOpen, setIsSortOpen] = useState(false);
   const [isServiceOpen, setIsServiceOpen] = useState(false);
   const serviceRef = useRef<HTMLDivElement>(null);
 
@@ -137,6 +141,9 @@ export default function Deals() {
       }
       if (cityRef.current && !cityRef.current.contains(event.target as Node)) {
         setIsCityOpen(false);
+      }
+      if (sortRef.current && !sortRef.current.contains(event.target as Node)) {
+        setIsSortOpen(false);
       }
       if (serviceRef.current && !serviceRef.current.contains(event.target as Node)) {
         setIsServiceOpen(false);
@@ -156,6 +163,9 @@ export default function Deals() {
         url += `category_id=${selectedGlobalService}&`;
       } else if (searchQuery) {
         url += `q=${encodeURIComponent(searchQuery)}&`;
+      }
+      if (selectedSort) {
+        url += `sort=${selectedSort}&`;
       }
 
       const response = await api.get(url);
@@ -223,6 +233,7 @@ export default function Deals() {
                 {globalServices.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase())).length > 0 ? (
                   globalServices
                     .filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                    .sort((a, b) => a.name.localeCompare(b.name))
                     .map((service) => (
                       <button
                         key={service.id}
@@ -303,7 +314,7 @@ export default function Deals() {
             </div>
 
             {/* Area Dropdown */}
-            <div className="relative flex items-center justify-between md:justify-start w-full md:w-[170px] gap-3 px-4 md:px-6 py-3.5 md:py-3 text-white h-full" ref={cityRef}>
+            <div className="relative flex items-center justify-between md:justify-start w-full md:w-[170px] gap-3 px-4 md:px-6 py-3.5 md:py-3 text-white border-b md:border-b-0 md:border-r border-[#333] h-full" ref={cityRef}>
               <button
                 type="button"
                 disabled={!selectedEmirate}
@@ -355,6 +366,62 @@ export default function Deals() {
                         {c.name}
                       </button>
                     ))}
+                </div>
+              )}
+            </div>
+
+            {/* Sort Dropdown */}
+            <div className="relative flex items-center justify-between md:justify-start w-full md:w-[170px] gap-3 px-4 md:px-6 py-3.5 md:py-3 text-white h-full" ref={sortRef}>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsSortOpen(!isSortOpen);
+                  setIsEmirateOpen(false);
+                  setIsCityOpen(false);
+                }}
+                className="flex items-center justify-between w-full gap-3 text-left text-sm md:text-[14px] font-medium text-white hover:text-[#d4933a] transition-colors duration-200"
+              >
+                <div className="flex items-center gap-2 truncate">
+                  <Filter className="w-4 h-4 text-white/50 shrink-0" strokeWidth={1.5} />
+                  <span className="truncate">{selectedSort === "alpha_asc" ? "A to Z" : selectedSort === "alpha_desc" ? "Z to A" : "Sort By"}</span>
+                </div>
+                <ChevronDown
+                  className={`w-3.5 h-3.5 text-[#888] shrink-0 transition-transform duration-300 ${isSortOpen ? "rotate-180" : ""}`}
+                />
+              </button>
+
+              {isSortOpen && (
+                <div className="absolute left-0 right-0 md:left-4 md:right-auto top-full mt-2 md:w-[190px] rounded-2xl bg-[#1c1c1c] border border-[#333] p-2 shadow-2xl z-50 flex flex-col gap-1 custom-scrollbar">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedSort("");
+                      setIsSortOpen(false);
+                    }}
+                    className={`w-full text-left px-4 py-2.5 text-sm rounded-xl transition-all duration-150 ${selectedSort === "" ? "bg-[#d4933a]/10 text-[#d4933a] font-medium" : "text-[#D4D2CD] hover:text-white hover:bg-white/5"}`}
+                  >
+                    Relevance
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedSort("alpha_asc");
+                      setIsSortOpen(false);
+                    }}
+                    className={`w-full text-left px-4 py-2.5 text-sm rounded-xl transition-all duration-150 ${selectedSort === "alpha_asc" ? "bg-[#d4933a]/10 text-[#d4933a] font-medium" : "text-[#D4D2CD] hover:text-white hover:bg-white/5"}`}
+                  >
+                    Alphabetical (A-Z)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedSort("alpha_desc");
+                      setIsSortOpen(false);
+                    }}
+                    className={`w-full text-left px-4 py-2.5 text-sm rounded-xl transition-all duration-150 ${selectedSort === "alpha_desc" ? "bg-[#d4933a]/10 text-[#d4933a] font-medium" : "text-[#D4D2CD] hover:text-white hover:bg-white/5"}`}
+                  >
+                    Alphabetical (Z-A)
+                  </button>
                 </div>
               )}
             </div>

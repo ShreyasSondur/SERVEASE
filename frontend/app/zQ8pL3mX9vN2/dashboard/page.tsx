@@ -12,6 +12,7 @@ import {
   LogOut,
   Search,
   X,
+  User,
   Check,
   Menu,
   Filter,
@@ -34,6 +35,7 @@ export default function AdminDashboard() {
     { name: "Partners", icon: Users, roles: ["ADMIN", "MODERATOR"] },
     { name: "Verify Partner", icon: CheckSquare, roles: ["ADMIN", "MODERATOR"] },
     { name: "Suspended", icon: X, roles: ["ADMIN", "MODERATOR"] },
+    { name: "Users", icon: Users, roles: ["ADMIN"] },
     { name: "Mods", icon: ShieldAlert, roles: ["ADMIN"] },
     { name: "Verify Mods", icon: CheckSquare, roles: ["ADMIN"] },
     { name: "User Logs", icon: FileText, roles: ["ADMIN"] },
@@ -43,6 +45,7 @@ export default function AdminDashboard() {
 
   const [stats, setStats] = useState({ users: 0, partners: 0, services: 0, deals: 0 });
   const [partners, setPartners] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
   const [mods, setMods] = useState<any[]>([]);
   const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -64,6 +67,7 @@ export default function AdminDashboard() {
 
   // Search state for partners
   const [partnerSearch, setPartnerSearch] = useState("");
+  const [userSearch, setUserSearch] = useState("");
   const [logSearch, setLogSearch] = useState("");
   const [modSearch, setModSearch] = useState("");
 
@@ -105,6 +109,9 @@ export default function AdminDashboard() {
       } else if (activeTab === "Partners" || activeTab === "Verify Partner" || activeTab === "Suspended") {
         const res = await api.get("/admin/partners");
         setPartners(res.data);
+      } else if (activeTab === "Users") {
+        const res = await api.get("/admin/users");
+        setUsers(res.data);
       } else if (activeTab === "Mods" || activeTab === "Verify Mods") {
         const res = await api.get("/admin/mods");
         setMods(res.data);
@@ -263,37 +270,54 @@ export default function AdminDashboard() {
   };
 
   const toggleEmirateVisibility = async (id: number) => {
-    // Save original state for potential rollback
     const originalEmirates = [...catalogEmirates];
-
-    // Optimistically update state instantly
     setCatalogEmirates(prev =>
       prev.map(e => e.id === id ? { ...e, is_visible: !e.is_visible } : e)
     );
-
     try {
       const res = await api.put(`/admin/emirates/${id}/toggle-visibility`);
-      // Update with exact backend value (redundancy check)
       setCatalogEmirates(prev =>
         prev.map(e => e.id === id ? { ...e, is_visible: res.data.is_visible } : e)
       );
     } catch (err) {
-      // Rollback to original state on network failure
       setCatalogEmirates(originalEmirates);
       setCatalogMsg({ type: "error", text: "Failed to update Emirate visibility" });
     }
   };
 
   const deleteCity = async (id: number) => {
-    if (confirm("Are you sure you want to delete this area? All partner services and deals in this area will be deleted permanently.")) {
+    if (confirm("Are you sure you want to delete this city?")) {
       try {
         await api.delete(`/admin/cities/${id}`);
-        setCatalogMsg({ type: "success", text: "Area deleted successfully" });
         fetchData();
       } catch (e) {
-        setCatalogMsg({ type: "error", text: "Failed to delete area" });
+        console.error(e);
       }
     }
+  };
+
+  const exportUsersCSV = () => {
+    const sortedUsers = [...users]
+      .filter((u: any) =>
+        (u.full_name || "").toLowerCase().includes(userSearch.toLowerCase()) ||
+        (u.email || "").toLowerCase().includes(userSearch.toLowerCase())
+      )
+      .sort((a, b) => (a.full_name || "").localeCompare(b.full_name || ""));
+
+    const headers = ["ID", "Username", "Email"];
+    const csvContent = [
+      headers.join(","),
+      ...sortedUsers.map((u: any) => `${u.id},"${u.full_name || ""}","${u.email || ""}"`)
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "users_export.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const downloadSearches = async () => {
@@ -318,7 +342,7 @@ export default function AdminDashboard() {
   }
 
   const renderContent = () => {
-    if (loading && activeTab !== "Add Catalog" && activeTab !== "Analytics") {
+    if (loading && activeTab !== "Add Catalog" && activeTab !== "Analytics" && activeTab !== "Users") {
       return <div className="text-[#888]">Loading...</div>;
     }
 
@@ -351,7 +375,6 @@ export default function AdminDashboard() {
         );
 
       case "Partners":
-        // Filter, search, and sort partners
         const filteredAndSortedPartners = partners
           .filter(p => p.status === "VERIFIED" || p.status === "BANNED")
           .filter(p => {
@@ -464,6 +487,82 @@ export default function AdminDashboard() {
               {partners.filter(p => p.status === "PENDING").length === 0 && (
                 <div className="text-gray-500 text-sm">No pending partners.</div>
               )}
+            </div>
+          </div>
+        );
+
+      case "Users":
+        return (
+          <div className="animate-fade-in">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+              <div>
+                <h1 className="text-3xl font-bold text-white tracking-wide font-serif mb-2">Users Directory</h1>
+                <p className="text-[#888] text-sm">View, search, and export standard users</p>
+              </div>
+              <div className="flex items-center gap-3 w-full md:w-auto">
+                <div className="relative flex-1 md:w-64">
+                  <Search className="w-4 h-4 text-[#888] absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    placeholder="Search users..."
+                    value={userSearch}
+                    onChange={(e) => setUserSearch(e.target.value)}
+                    className="w-full bg-[#1c1c1c] border border-[#333] text-white rounded-xl py-2 pl-10 pr-4 text-sm focus:outline-none focus:border-[#d4933a]"
+                  />
+                </div>
+                <button
+                  onClick={exportUsersCSV}
+                  className="flex items-center gap-2 bg-[#1c1c1c] hover:bg-[#2a2a2a] border border-[#333] text-[#d4933a] px-4 py-2 rounded-xl text-sm font-medium transition-colors cursor-pointer"
+                >
+                  <Download className="w-4 h-4" />
+                  <span className="hidden sm:inline">Export</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="bg-[#151515] border border-[#222] rounded-3xl overflow-hidden shadow-2xl">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse min-w-[600px]">
+                  <thead>
+                    <tr className="bg-[#1a1a1a] border-b border-[#222]">
+                      <th className="p-5 text-[#888] font-semibold text-xs uppercase tracking-wider w-20">ID</th>
+                      <th className="p-5 text-[#888] font-semibold text-xs uppercase tracking-wider">Username</th>
+                      <th className="p-5 text-[#888] font-semibold text-xs uppercase tracking-wider">Email</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#222]">
+                    {[...users]
+                      .filter((u: any) =>
+                        (u.full_name || "").toLowerCase().includes(userSearch.toLowerCase()) ||
+                        (u.email || "").toLowerCase().includes(userSearch.toLowerCase())
+                      )
+                      .sort((a, b) => (a.full_name || "").localeCompare(b.full_name || ""))
+                      .map((u: any) => (
+                        <tr key={u.id} className="hover:bg-[#1a1a1a] transition-colors">
+                          <td className="p-5 text-[#aaa] font-medium text-sm">#{u.id}</td>
+                          <td className="p-5">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-full bg-[#222] flex items-center justify-center shrink-0 border border-[#333]">
+                                <User className="w-4 h-4 text-[#888]" />
+                              </div>
+                              <span className="text-white font-medium text-sm">{u.full_name || "N/A"}</span>
+                            </div>
+                          </td>
+                          <td className="p-5">
+                            <span className="text-[#888] text-sm">{u.email}</span>
+                          </td>
+                        </tr>
+                      ))}
+                    {users.length === 0 && (
+                      <tr>
+                        <td colSpan={3} className="p-10 text-center text-[#888] text-sm">
+                          No users found.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         );
@@ -693,8 +792,6 @@ export default function AdminDashboard() {
                     </div>
                   ) : (
                     searchAnalytics.map((item, idx) => {
-                      // Visual scaling to match the non-linear aesthetic of the reference image
-                      // In a real app this would use a logarithmic scale function from d3 or similar
                       let heightPct = 0;
                       if (item.count > 0) {
                         heightPct = Math.max((item.count / maxSearches) * 100, 5); // min 5% height to be visible
