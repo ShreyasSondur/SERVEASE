@@ -14,9 +14,9 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Servease - Professional Services On Demand",
+  title: "Serviz UAE - Professional Services On Demand",
   icons: {
-    icon:"/images/icons.png",
+    icon: "/images/icons.png",
   },
   description: "Find trusted professionals for every job. Plumbing, AC Repair, Electrical and more.",
 };

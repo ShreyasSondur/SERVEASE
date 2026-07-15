@@ -1,2 +1,4 @@
 # Ignore local backend backup zip
 backend.zip
+
+backend/env_production.txt

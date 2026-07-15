@@ -975,7 +975,7 @@ export default function AdminDashboard() {
         <div className="p-8 hidden lg:block">
           <Link href="/">
             <h1 className="text-[28px] font-bold italic tracking-wide cursor-pointer hover:opacity-80 transition-opacity">
-              <span className="text-white">SERV</span><span className="text-[#d4933a]">EASE</span>
+              <span className="text-white">SERV</span><span className="text-[#d4933a]">IZ</span>
             </h1>
           </Link>
         </div>
