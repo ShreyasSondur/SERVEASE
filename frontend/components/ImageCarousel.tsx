@@ -20,6 +20,10 @@ export default function ImageCarousel({
   featuredBadge,
 }: ImageCarouselProps) {
   const [activeIndex, setActiveIndex] = useState(0);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+
+  const minSwipeDistance = 50;
 
   let parsedImages = [];
   if (Array.isArray(images)) {
@@ -68,9 +72,36 @@ export default function ImageCarousel({
     e.stopPropagation();
     setActiveIndex(index);
   };
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEndHandler = () => {
+    if (!touchStart || !touchEnd) return;
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+
+    if (isLeftSwipe) {
+      setActiveIndex((prev) => (prev === validImages.length - 1 ? 0 : prev + 1));
+    }
+    if (isRightSwipe) {
+      setActiveIndex((prev) => (prev === 0 ? validImages.length - 1 : prev - 1));
+    }
+  };
 
   return (
-    <div className="relative w-full h-full group overflow-hidden rounded-2xl bg-black">
+    <div 
+      className="relative w-full h-full group overflow-hidden rounded-2xl bg-black"
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEndHandler}
+    >
       {/* Images container */}
       <div className="w-full h-full relative">
         {validImages.map((img, index) => (

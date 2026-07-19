@@ -85,7 +85,7 @@ export default function Footer() {
       <div className="border-t border-white/5">
         <div className="w-full mx-auto px-6 lg:px-12 py-5 flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="text-white/30 text-xs font-sans">
-            © 2026 SERVIZ. All rights reserved
+            © 2026 Lauxertech. All rights reserved
           </p>
           <Link
             href="/privacy"

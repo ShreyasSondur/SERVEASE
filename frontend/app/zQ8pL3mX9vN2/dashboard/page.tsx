@@ -23,8 +23,11 @@ import {
   ShieldAlert,
   Trash2,
   Eye,
-  EyeOff
+  EyeOff,
+  Image as ImageIcon
 } from "lucide-react";
+
+import AdsManagement from "./AdsManagement";
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("Dashboard");
@@ -40,6 +43,7 @@ export default function AdminDashboard() {
     { name: "Verify Mods", icon: CheckSquare, roles: ["ADMIN"] },
     { name: "User Logs", icon: FileText, roles: ["ADMIN"] },
     { name: "Analytics", icon: BarChart2, roles: ["ADMIN"] },
+    { name: "Ads", icon: ImageIcon, roles: ["ADMIN"] },
     { name: "Add Catalog", icon: PlusCircle, roles: ["ADMIN"] },
   ];
 
@@ -137,6 +141,8 @@ export default function AdminDashboard() {
         });
         const chartData = Object.keys(agg).map(k => ({ label: k, count: agg[k] }));
         setSearchAnalytics(chartData);
+      } else if (activeTab === "Ads") {
+        // Ads handles its own fetch
       }
     } catch (err) {
       console.error("Failed to fetch data", err);
@@ -342,7 +348,7 @@ export default function AdminDashboard() {
   }
 
   const renderContent = () => {
-    if (loading && activeTab !== "Add Catalog" && activeTab !== "Analytics" && activeTab !== "Users") {
+    if (loading && activeTab !== "Add Catalog" && activeTab !== "Analytics" && activeTab !== "Users" && activeTab !== "Ads") {
       return <div className="text-[#888]">Loading...</div>;
     }
 
@@ -1017,6 +1023,9 @@ export default function AdminDashboard() {
             </div>
           </div>
         );
+
+      case "Ads":
+        return <AdsManagement />;
 
       default:
         return (

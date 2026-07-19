@@ -301,7 +301,7 @@ export default function DealDetail() {
                 <Phone className="w-5 h-5 text-white/50" />
                 <div className="flex flex-col">
                   <span className="text-[10px] uppercase tracking-wider text-gray-500">Phone Number</span>
-                  <span className="text-[15px] font-medium">{service.partner?.phone}</span>
+                  <span className="text-[15px] font-medium">{service.partner?.phone ? `+971 ${service.partner.phone.replace(/^\+?971/, '').trim()}` : ''}</span>
                 </div>
               </div>
               
@@ -318,13 +318,13 @@ export default function DealDetail() {
             
             <div className="flex flex-col sm:flex-row gap-3">
               <a 
-                href={`tel:${service.partner?.phone}`}
+                href={service.partner?.phone ? `tel:+971${service.partner.phone.replace(/^\+?971/, '').replace(/\D/g, '')}` : '#'}
                 className="flex-1 bg-[#222] hover:bg-[#333] border border-[#333] hover:border-[#d4933a] text-white py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-all cursor-pointer"
               >
                 <Phone className="w-4 h-4" /> Call Now
               </a>
               <a 
-                href={`https://wa.me/${service.partner?.phone?.replace(/\D/g, '')}?text=${encodeURIComponent(`Hi, I'd like to inquire about your deal: ${deal.discount_desc} for ${service.title}`)}`}
+                href={service.partner?.phone ? `https://wa.me/971${service.partner.phone.replace(/^\+?971/, '').replace(/\D/g, '')}?text=${encodeURIComponent(`Hi, I'd like to inquire about your deal: ${deal.discount_desc} for ${service.title}`)}` : '#'}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex-1 bg-[#25D366] hover:bg-[#20ba5a] text-white py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-[0_0_15px_rgba(37,211,102,0.25)] cursor-pointer"

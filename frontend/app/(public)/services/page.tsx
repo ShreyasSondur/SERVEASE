@@ -49,6 +49,7 @@ export default function Services() {
   const [isSortOpen, setIsSortOpen] = useState(false);
   const [isServiceOpen, setIsServiceOpen] = useState(false);
   const serviceRef = useRef<HTMLDivElement>(null);
+  const [ads, setAds] = useState<Record<string, any>>({});
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -70,6 +71,12 @@ export default function Services() {
   }, []);
 
   useEffect(() => {
+    api.get("/ads").then(res => {
+      const adsMap: Record<string, any> = {};
+      res.data.forEach((ad: any) => adsMap[ad.position] = ad);
+      setAds(adsMap);
+    }).catch(() => {});
+
     const fetchCatalogAndSearch = async () => {
       try {
         const [emRes, cityRes, catRes] = await Promise.all([
@@ -203,7 +210,12 @@ export default function Services() {
     <div className="relative min-h-screen bg-[#111111] flex flex-col w-full font-sans">
       <Navbar />
 
-      <main className="flex-grow pt-28 md:pt-32 pb-20 md:pb-24 px-4 sm:px-6 md:px-10 lg:px-12 max-w-[1200px] mx-auto w-full">
+      <main className="flex-grow pt-28 md:pt-32 pb-20 md:pb-24 px-4 sm:px-6 md:px-10 lg:px-12 max-w-[1400px] mx-auto w-full">
+        {ads.add1?.is_active && ads.add1?.image_url && (
+          <div className="w-full mb-8 block lg:hidden">
+            <img src={ads.add1.image_url} alt="Ad" className="w-full max-h-[150px] object-cover rounded-2xl border border-[#333] shadow-lg" />
+          </div>
+        )}
         {/* Search Bar */}
         <form
           onSubmit={(e) => {
@@ -433,8 +445,10 @@ export default function Services() {
           </div>
         </form>
 
-        {/* Services List */}
-        <div className="flex flex-col gap-10 md:gap-14">
+        {/* Content Layout */}
+        <div className="flex flex-col lg:flex-row gap-8">
+          {/* Services List */}
+          <div className="flex-1 flex flex-col gap-10 md:gap-14">
           {loading ? (
             <div className="text-white text-center py-10">Loading services...</div>
           ) : services.length === 0 ? (
@@ -444,7 +458,7 @@ export default function Services() {
               <div key={service.id} className="flex flex-col">
                 <div className="flex flex-col lg:flex-row gap-5 md:gap-8">
                   {/* Image Carousel */}
-                  <div className="relative w-full lg:w-[320px] h-[200px] md:h-[220px] rounded-2xl flex-shrink-0 overflow-hidden shadow-lg">
+                  <div className="relative w-full lg:w-[320px] h-[220px] md:h-[250px] rounded-2xl flex-shrink-0 overflow-hidden shadow-lg">
                     <ImageCarousel
                       images={service.images}
                       imageUrl={service.image_url}
@@ -509,6 +523,22 @@ export default function Services() {
               </div>
             ))
           )}
+          </div>
+
+          {/* Ad 1 (Top Right) */}
+          {ads.add1?.is_active && ads.add1?.image_url && (
+            <div className="hidden lg:block w-[300px] shrink-0">
+              <div className="sticky top-24">
+                {ads.add1.redirect_url ? (
+                  <a href={ads.add1.redirect_url} target="_blank" rel="noopener noreferrer" className="block cursor-pointer">
+                    <img src={ads.add1.image_url} alt="Advertisement" className="w-full h-[680px] rounded-2xl shadow-lg border border-[#333] object-cover transition-transform hover:scale-[1.01]" />
+                  </a>
+                ) : (
+                  <img src={ads.add1.image_url} alt="Advertisement" className="w-full h-[680px] rounded-2xl shadow-lg border border-[#333] object-cover" />
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Pagination */}
@@ -551,6 +581,18 @@ export default function Services() {
             >
               <ChevronRight className="w-5 h-5" />
             </button>
+          </div>
+        )}
+        {/* Ad 2 (Bottom Center) */}
+        {ads.add2?.is_active && ads.add2?.image_url && (
+          <div className="w-full mt-16">
+            {ads.add2.redirect_url ? (
+              <a href={ads.add2.redirect_url} target="_blank" rel="noopener noreferrer" className="block cursor-pointer">
+                <img src={ads.add2.image_url} alt="Advertisement" className="w-full h-auto max-h-[250px] object-cover rounded-2xl shadow-lg border border-[#333] transition-transform hover:scale-[1.01]" />
+              </a>
+            ) : (
+              <img src={ads.add2.image_url} alt="Advertisement" className="w-full h-auto max-h-[250px] object-cover rounded-2xl shadow-lg border border-[#333]" />
+            )}
           </div>
         )}
       </main>
@@ -616,7 +658,7 @@ export default function Services() {
                 <Phone className="w-5 h-5 text-white/50" />
                 <div className="flex flex-col">
                   <span className="text-[10px] uppercase tracking-wider text-gray-500">Phone Number</span>
-                  <span className="text-[15px] font-medium">{selectedServiceForContact.partner?.phone}</span>
+                  <span className="text-[15px] font-medium">{selectedServiceForContact.partner?.phone ? `+971 ${selectedServiceForContact.partner.phone.replace(/^\+?971/, '').trim()}` : ''}</span>
                 </div>
               </div>
 
@@ -633,13 +675,13 @@ export default function Services() {
 
             <div className="flex flex-col sm:flex-row gap-3">
               <a
-                href={`tel:${selectedServiceForContact.partner?.phone}`}
+                href={selectedServiceForContact.partner?.phone ? `tel:+971${selectedServiceForContact.partner.phone.replace(/^\+?971/, '').replace(/\D/g, '')}` : '#'}
                 className="flex-1 bg-[#222] hover:bg-[#333] border border-[#333] hover:border-[#d4933a] text-white py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-all cursor-pointer"
               >
                 <Phone className="w-4 h-4" /> Call Now
               </a>
               <a
-                href={`https://wa.me/${selectedServiceForContact.partner?.phone?.replace(/\D/g, '')}`}
+                href={selectedServiceForContact.partner?.phone ? `https://wa.me/971${selectedServiceForContact.partner.phone.replace(/^\+?971/, '').replace(/\D/g, '')}` : '#'}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex-1 bg-[#25D366] hover:bg-[#20ba5a] text-white py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-[0_0_15px_rgba(37,211,102,0.25)] cursor-pointer"
