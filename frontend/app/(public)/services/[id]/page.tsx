@@ -19,6 +19,11 @@ export default function ServiceDetail() {
   const [showAuthRequiredModal, setShowAuthRequiredModal] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [checkedAuth, setCheckedAuth] = useState(false);
+  const [userProfile, setUserProfile] = useState<any>(null);
+  const [showPhoneRequiredModal, setShowPhoneRequiredModal] = useState(false);
+  const [phoneNumberInput, setPhoneNumberInput] = useState("");
+  const [isSubmittingPhone, setIsSubmittingPhone] = useState(false);
+  const [phoneError, setPhoneError] = useState("");
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -40,12 +45,32 @@ export default function ServiceDetail() {
     }
   }, [params.id]);
 
-  const handleContactClick = () => {
+  const handleContactClick = async () => {
     if (!localStorage.getItem("token")) {
       setShowAuthRequiredModal(true);
-    } else {
-      setShowContactModal(true);
+      return;
+    } 
+
+    if (userProfile && !userProfile.phone_number) {
+      setShowPhoneRequiredModal(true);
+      return;
     }
+
+    if (!userProfile) {
+      try {
+        const userRes = await api.get("/auth/me");
+        setUserProfile(userRes.data);
+        if (!userRes.data.phone_number) {
+           setShowPhoneRequiredModal(true);
+           return;
+        }
+      } catch (e) {
+        setShowAuthRequiredModal(true);
+        return;
+      }
+    }
+
+    setShowContactModal(true);
   };
 
   if (loading) {
@@ -60,45 +85,6 @@ export default function ServiceDetail() {
     );
   }
 
-  if (checkedAuth && !isLoggedIn) {
-    return (
-      <div className="relative min-h-screen bg-[#0b0a0a] flex flex-col w-full font-sans text-white">
-        <Navbar />
-        <main className="flex-grow w-full max-w-[1200px] mx-auto px-4 sm:px-6 md:px-8 py-10 pt-28 flex items-center justify-center">
-          <div className="bg-[#151515] border border-[#222] rounded-3xl p-8 md:p-12 max-w-lg w-full text-center shadow-2xl animate-fade-in text-white relative">
-            <div className="w-20 h-20 rounded-full bg-[#d4933a]/10 border border-[#d4933a]/30 flex items-center justify-center mx-auto mb-8 shadow-[0_0_20px_rgba(212,147,58,0.1)]">
-              <User className="w-10 h-10 text-[#d4933a]" />
-            </div>
-            <h2 className="text-2xl md:text-3xl font-semibold text-white mb-4 tracking-wide font-serif">
-              Login Required
-            </h2>
-            <p className="text-[#888] text-sm md:text-base leading-relaxed mb-10">
-              Please log in or register for a free account to view this partner's full service details, images, description, and contact information.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href={`/login?redirect=/services/${params.id}`} className="w-full sm:w-1/2">
-                <button className="w-full bg-[#d4933a] hover:bg-[#c28532] text-white py-4 rounded-xl font-bold transition-all shadow-[0_0_20px_rgba(212,147,58,0.25)] hover:shadow-[0_0_30px_rgba(212,147,58,0.4)] cursor-pointer">
-                  Log In
-                </button>
-              </Link>
-              <Link href={`/signup?redirect=/services/${params.id}`} className="w-full sm:w-1/2">
-                <button className="w-full bg-[#222] border border-[#333] hover:border-[#444] text-[#aaa] hover:text-white py-4 rounded-xl font-bold transition-all cursor-pointer">
-                  Register for Free
-                </button>
-              </Link>
-            </div>
-            <button 
-              onClick={() => router.back()} 
-              className="mt-6 text-[#d4933a] hover:underline text-sm font-semibold tracking-wide cursor-pointer flex items-center gap-1.5 justify-center mx-auto"
-            >
-              <ArrowLeft className="w-4 h-4" /> Go Back
-            </button>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
 
   if (error || !service) {
     return (
@@ -124,13 +110,13 @@ export default function ServiceDetail() {
       <main className="flex-grow w-full max-w-[1200px] mx-auto px-4 sm:px-6 md:px-8 py-10 pt-28">
         {/* Back Navigation */}
         <div className="mb-6 animate-fade-in">
-          <button 
-            onClick={() => router.back()} 
+          <Link 
+            href="/services" 
             className="flex items-center gap-2 text-white/50 hover:text-white transition-colors text-sm font-semibold tracking-wide cursor-pointer group"
           >
             <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
             Back to Services
-          </button>
+          </Link>
         </div>
 
         {/* Title */}
@@ -321,6 +307,78 @@ export default function ServiceDetail() {
                 <MessageCircle className="w-4 h-4" /> WhatsApp
               </a>
             </div>
+          </div>
+        </div>
+      )}
+      {/* Phone Required Modal */}
+      {showPhoneRequiredModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <div className="bg-[#151515] border border-[#222] rounded-3xl p-8 max-w-md w-full shadow-2xl animate-fade-in relative text-white">
+            <button
+              onClick={() => setShowPhoneRequiredModal(false)}
+              className="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <div className="w-16 h-16 rounded-full bg-[#d4933a]/10 border border-[#d4933a]/30 flex items-center justify-center mx-auto mb-6">
+              <Phone className="w-8 h-8 text-[#d4933a]" />
+            </div>
+            <h2 className="text-2xl font-semibold text-white mb-2 text-center tracking-wide">Phone Number Required</h2>
+            <p className="text-[#888] text-sm leading-relaxed mb-6 text-center">
+              Please provide your phone number to view contact details. This helps service providers reach you if needed.
+            </p>
+            
+            {phoneError && (
+              <div className="mb-4 p-3 bg-red-500/10 border border-red-500/50 rounded-xl text-red-500 text-sm text-center">
+                {phoneError}
+              </div>
+            )}
+
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              setPhoneError("");
+              if (!phoneNumberInput || phoneNumberInput.length < 5) {
+                setPhoneError("Please enter a valid phone number");
+                return;
+              }
+              setIsSubmittingPhone(true);
+              try {
+                const res = await api.put("/auth/me/phone", { phone_number: "+971 " + phoneNumberInput });
+                setUserProfile(res.data);
+                setShowPhoneRequiredModal(false);
+                setShowContactModal(true);
+              } catch (err: any) {
+                setPhoneError(err.response?.data?.detail || "Failed to save phone number");
+              } finally {
+                setIsSubmittingPhone(false);
+              }
+            }}>
+              <div className="flex flex-col gap-1 mb-6">
+                <label className="text-white text-[13px] font-medium">Phone Number</label>
+                <div className="relative">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                    <Phone className="w-4 h-4 text-[#666]" strokeWidth={2} />
+                    <span className="text-[#888] text-[14px] font-medium">+971</span>
+                  </div>
+                  <input
+                    type="tel"
+                    value={phoneNumberInput}
+                    onChange={(e) => setPhoneNumberInput(e.target.value.replace(/[^0-9]/g, ''))}
+                    placeholder="50 123 4567"
+                    required
+                    className="w-full bg-[#1e1e1e] border border-[#333] focus:border-[#d4933a] focus:bg-[#222] text-white rounded-xl py-3 pl-[84px] pr-4 outline-none text-[14px] placeholder-[#666] transition-all"
+                  />
+                </div>
+              </div>
+              
+              <button
+                type="submit"
+                disabled={isSubmittingPhone}
+                className="w-full bg-[#d4933a] hover:bg-[#c28532] disabled:opacity-50 text-white py-3.5 rounded-xl font-bold transition-all shadow-[0_0_15px_rgba(212,147,58,0.25)] cursor-pointer"
+              >
+                {isSubmittingPhone ? "Saving..." : "Save & View Contact"}
+              </button>
+            </form>
           </div>
         </div>
       )}

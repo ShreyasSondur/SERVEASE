@@ -214,7 +214,7 @@ export default function Navbar() {
   const handleLogout = () => {
     localStorage.removeItem("token");
     setIsLoggedIn(false);
-    window.location.href = "/login";
+    window.location.reload();
   };
 
   const isHomePage = pathname === "/";
@@ -341,7 +341,7 @@ export default function Navbar() {
                           setIsProfileDropdownOpen(false);
                           handleLogout();
                         }}
-                        className="px-4 py-2 text-[15px] text-left text-red-500 hover:bg-red-500/10 transition-colors font-serif"
+                        className="px-4 py-2 text-[15px] text-left text-red-500 hover:bg-red-500/10 transition-colors font-serif cursor-pointer"
                       >
                         Logout
                       </button>
@@ -382,7 +382,7 @@ export default function Navbar() {
             ) : (
               <>
                 <Link
-                  href="/login"
+                  href={`/login?redirect=${pathname}`}
                   className="text-[16px] lg:text-[18px] font-serif font-normal text-white hover:text-gold transition-colors duration-200"
                 >
                   Login
@@ -512,8 +512,9 @@ export default function Navbar() {
                 onClick={() => {
                   setIsOpen(false);
                   handleLogout();
+                  window.location.reload();
                 }}
-                className="mt-4 block w-full text-center rounded-full border border-red-500 py-2 px-5 tracking-wide text-[17px] font-bold text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer"
+                className="block text-[18px] font-normal text-red-500 hover:text-red-400 transition-colors text-left w-full cursor-pointer"
               >
                 Logout
               </button>
@@ -521,7 +522,7 @@ export default function Navbar() {
           ) : (
             <>
               <Link
-                href="/login"
+                href={`/login?redirect=${pathname}`}
                 onClick={() => setIsOpen(false)}
                 className="block text-[18px] font-normal text-[#D4D2CD] hover:text-white transition-colors"
               >

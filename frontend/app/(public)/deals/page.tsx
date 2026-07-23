@@ -90,6 +90,14 @@ export default function Deals() {
         }
 
         const token = localStorage.getItem("token");
+        if (token) {
+          try {
+             const userRes = await api.get("/auth/me");
+             setUserProfile(userRes.data);
+          } catch(e) {
+             console.error(e);
+          }
+        }
         setIsLoggedIn(!!token);
         setCheckedAuth(true);
 
@@ -123,6 +131,11 @@ export default function Deals() {
   const [selectedServiceForContact, setSelectedServiceForContact] = useState<any>(null);
   const [showContactModal, setShowContactModal] = useState(false);
   const [showAuthRequiredModal, setShowAuthRequiredModal] = useState(false);
+  const [userProfile, setUserProfile] = useState<any>(null);
+  const [showPhoneRequiredModal, setShowPhoneRequiredModal] = useState(false);
+  const [phoneNumberInput, setPhoneNumberInput] = useState("");
+  const [isSubmittingPhone, setIsSubmittingPhone] = useState(false);
+  const [phoneError, setPhoneError] = useState("");
 
   const emirateRef = useRef<HTMLDivElement>(null);
   const cityRef = useRef<HTMLDivElement>(null);
@@ -198,13 +211,36 @@ export default function Deals() {
     fetchDeals(1);
   };
 
-  const handleContact = (deal: any) => {
+  const handleContact = async (deal: any) => {
     if (!localStorage.getItem("token")) {
-      setShowAuthRequiredModal(true);
-    } else {
       setSelectedServiceForContact(deal);
-      setShowContactModal(true);
+      setShowAuthRequiredModal(true);
+      return;
+    } 
+
+    if (userProfile && !userProfile.phone_number) {
+      setSelectedServiceForContact(deal);
+      setShowPhoneRequiredModal(true);
+      return;
     }
+
+    if (!userProfile) {
+      try {
+        const userRes = await api.get("/auth/me");
+        setUserProfile(userRes.data);
+        if (!userRes.data.phone_number) {
+           setSelectedServiceForContact(deal);
+           setShowPhoneRequiredModal(true);
+           return;
+        }
+      } catch (e) {
+        setShowAuthRequiredModal(true);
+        return;
+      }
+    }
+
+    setSelectedServiceForContact(deal);
+    setShowContactModal(true);
   };
 
   const currentEmirateName = emirates.find(e => e.id.toString() === selectedEmirate)?.name || "All Emirates";
@@ -397,7 +433,7 @@ export default function Deals() {
               >
                 <div className="flex items-center gap-2 truncate">
                   <Filter className="w-4 h-4 text-white/50 shrink-0" strokeWidth={1.5} />
-                  <span className="truncate">{selectedSort === "alpha_asc" ? "A to Z" : selectedSort === "alpha_desc" ? "Z to A" : "Sort By"}</span>
+                  <span className="truncate">{selectedSort === "alpha_asc" ? "A to Z" : selectedSort === "alpha_desc" ? "Z to A" : selectedSort === "oldest" ? "Oldest to Newest" : "Newest to Oldest"}</span>
                 </div>
                 <ChevronDown
                   className={`w-3.5 h-3.5 text-[#888] shrink-0 transition-transform duration-300 ${isSortOpen ? "rotate-180" : ""}`}
@@ -414,7 +450,17 @@ export default function Deals() {
                     }}
                     className={`w-full text-left px-4 py-2.5 text-sm rounded-xl transition-all duration-150 ${selectedSort === "" ? "bg-[#d4933a]/10 text-[#d4933a] font-medium" : "text-[#D4D2CD] hover:text-white hover:bg-white/5"}`}
                   >
-                    Relevance
+                    Newest to Oldest
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedSort("oldest");
+                      setIsSortOpen(false);
+                    }}
+                    className={`w-full text-left px-4 py-2.5 text-sm rounded-xl transition-all duration-150 ${selectedSort === "oldest" ? "bg-[#d4933a]/10 text-[#d4933a] font-medium" : "text-[#D4D2CD] hover:text-white hover:bg-white/5"}`}
+                  >
+                    Oldest to Newest
                   </button>
                   <button
                     type="button"
@@ -454,7 +500,28 @@ export default function Deals() {
           {/* Deals List */}
           <div className="flex-1 flex flex-col gap-10 md:gap-14">
           {loading ? (
-            <div className="text-white text-center py-10">Loading deals...</div>
+            <div className="flex flex-col gap-10 md:gap-14 animate-pulse">
+              {[1, 2, 3].map((n) => (
+                <div key={n} className="flex flex-col lg:flex-row gap-5 md:gap-8">
+                  {/* Image Placeholder */}
+                  <div className="w-full lg:w-[320px] h-[220px] md:h-[250px] bg-[#1f2022] rounded-2xl flex-shrink-0"></div>
+                  {/* Content Placeholder */}
+                  <div className="flex flex-col flex-1 py-1 space-y-4">
+                    {/* Title */}
+                    <div className="h-6 bg-[#1f2022] rounded-lg w-3/4"></div>
+                    {/* Description */}
+                    <div className="space-y-2">
+                      <div className="h-4 bg-[#1f2022] rounded-lg w-full"></div>
+                      <div className="h-4 bg-[#1f2022] rounded-lg w-5/6"></div>
+                    </div>
+                    {/* Badges / Meta */}
+                    <div className="h-4 bg-[#1f2022] rounded-lg w-1/3 mt-auto"></div>
+                    {/* Footer / Buttons */}
+                    <div className="h-10 bg-[#1f2022] rounded-xl w-40 mt-4"></div>
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : deals.length === 0 ? (
             <div className="text-white text-center py-10">No deals found.</div>
           ) : (
@@ -708,6 +775,79 @@ export default function Deals() {
                 <MessageCircle className="w-4 h-4" /> WhatsApp
               </a>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Phone Required Modal */}
+      {showPhoneRequiredModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <div className="bg-[#151515] border border-[#222] rounded-3xl p-8 max-w-md w-full shadow-2xl animate-fade-in relative text-white">
+            <button
+              onClick={() => setShowPhoneRequiredModal(false)}
+              className="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <div className="w-16 h-16 rounded-full bg-[#d4933a]/10 border border-[#d4933a]/30 flex items-center justify-center mx-auto mb-6">
+              <Phone className="w-8 h-8 text-[#d4933a]" />
+            </div>
+            <h2 className="text-2xl font-semibold text-white mb-2 text-center tracking-wide">Phone Number Required</h2>
+            <p className="text-[#888] text-sm leading-relaxed mb-6 text-center">
+              Please provide your phone number to view contact details. This helps service providers reach you if needed.
+            </p>
+            
+            {phoneError && (
+              <div className="mb-4 p-3 bg-red-500/10 border border-red-500/50 rounded-xl text-red-500 text-sm text-center">
+                {phoneError}
+              </div>
+            )}
+
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              setPhoneError("");
+              if (!phoneNumberInput || phoneNumberInput.length < 5) {
+                setPhoneError("Please enter a valid phone number");
+                return;
+              }
+              setIsSubmittingPhone(true);
+              try {
+                const res = await api.put("/auth/me/phone", { phone_number: "+971 " + phoneNumberInput });
+                setUserProfile(res.data);
+                setShowPhoneRequiredModal(false);
+                setShowContactModal(true);
+              } catch (err: any) {
+                setPhoneError(err.response?.data?.detail || "Failed to save phone number");
+              } finally {
+                setIsSubmittingPhone(false);
+              }
+            }}>
+              <div className="flex flex-col gap-1 mb-6">
+                <label className="text-white text-[13px] font-medium">Phone Number</label>
+                <div className="relative">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                    <Phone className="w-4 h-4 text-[#666]" strokeWidth={2} />
+                    <span className="text-[#888] text-[14px] font-medium">+971</span>
+                  </div>
+                  <input
+                    type="tel"
+                    value={phoneNumberInput}
+                    onChange={(e) => setPhoneNumberInput(e.target.value.replace(/[^0-9]/g, ''))}
+                    placeholder="50 123 4567"
+                    required
+                    className="w-full bg-[#1e1e1e] border border-[#333] focus:border-[#d4933a] focus:bg-[#222] text-white rounded-xl py-3 pl-[84px] pr-4 outline-none text-[14px] placeholder-[#666] transition-all"
+                  />
+                </div>
+              </div>
+              
+              <button
+                type="submit"
+                disabled={isSubmittingPhone}
+                className="w-full bg-[#d4933a] hover:bg-[#c28532] disabled:opacity-50 text-white py-3.5 rounded-xl font-bold transition-all shadow-[0_0_15px_rgba(212,147,58,0.25)] cursor-pointer"
+              >
+                {isSubmittingPhone ? "Saving..." : "Save & View Contact"}
+              </button>
+            </form>
           </div>
         </div>
       )}

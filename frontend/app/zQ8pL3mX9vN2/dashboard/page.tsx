@@ -86,7 +86,7 @@ export default function AdminDashboard() {
   }, []);
 
   useEffect(() => {
-    // Auth Guard
+    // Auth Guard - run only once
     const checkAuth = async () => {
       try {
         const res = await api.get("/auth/me");
@@ -94,15 +94,46 @@ export default function AdminDashboard() {
           window.location.href = "/login";
         }
         setUserRole(res.data.role);
-        fetchData();
       } catch (err) {
         window.location.href = "/login";
       }
     };
-    checkAuth();
-  }, [activeTab]);
+    if (!userRole) {
+      checkAuth();
+    }
+  }, [userRole]);
+
+  useEffect(() => {
+    if (userRole) {
+      fetchData();
+    }
+  }, [activeTab, userRole]);
 
   const [searchAnalytics, setSearchAnalytics] = useState<any[]>([]);
+  const [analyticsTime, setAnalyticsTime] = useState("All Time");
+  const [analyticsEmirate, setAnalyticsEmirate] = useState("All");
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [downloadingTime, setDownloadingTime] = useState<string | null>(null);
+
+  const applyAnalyticsFilter = async () => {
+    setAnalyticsLoading(true);
+    try {
+      const res = await api.get(`/admin/search-history?time_period=${analyticsTime}&emirate=${analyticsEmirate}`);
+      const agg: Record<string, number> = {};
+      res.data.forEach((s: any) => {
+        const key = s.query || s.category || 'General Search';
+        agg[key] = (agg[key] || 0) + 1;
+      });
+      const chartData = Object.keys(agg)
+        .map(k => ({ label: k, count: agg[k] }))
+        .sort((a, b) => b.count - a.count);
+      setSearchAnalytics(chartData);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setAnalyticsLoading(false);
+    }
+  };
 
   const fetchData = async () => {
     setLoading(true);
@@ -120,7 +151,7 @@ export default function AdminDashboard() {
         const res = await api.get("/admin/mods");
         setMods(res.data);
       } else if (activeTab === "User Logs") {
-        const res = await api.get("/admin/logs");
+        const res = await api.get("/admin/activity-logs");
         setLogs(res.data);
       } else if (activeTab === "Add Catalog") {
         const [emRes, cityRes, servRes] = await Promise.all([
@@ -132,14 +163,16 @@ export default function AdminDashboard() {
         setCatalogCities(cityRes.data);
         setCatalogServices(servRes.data);
       } else if (activeTab === "Analytics") {
-        const res = await api.get("/admin/analytics/searches");
-        // Aggregate by Emirate/City for basic chart demo
+        const res = await api.get(`/admin/search-history?time_period=${analyticsTime}&emirate=${analyticsEmirate}`);
+        // Aggregate by Category/Query for basic chart demo
         const agg: Record<string, number> = {};
         res.data.forEach((s: any) => {
-          const key = `Query: ${s.query || 'All'}`;
+          const key = s.query || s.category || 'General Search';
           agg[key] = (agg[key] || 0) + 1;
         });
-        const chartData = Object.keys(agg).map(k => ({ label: k, count: agg[k] }));
+        const chartData = Object.keys(agg)
+          .map(k => ({ label: k, count: agg[k] }))
+          .sort((a, b) => b.count - a.count);
         setSearchAnalytics(chartData);
       } else if (activeTab === "Ads") {
         // Ads handles its own fetch
@@ -303,53 +336,167 @@ export default function AdminDashboard() {
   };
 
   const exportUsersCSV = () => {
-    const sortedUsers = [...users]
-      .filter((u: any) =>
-        (u.full_name || "").toLowerCase().includes(userSearch.toLowerCase()) ||
-        (u.email || "").toLowerCase().includes(userSearch.toLowerCase())
-      )
-      .sort((a, b) => (a.full_name || "").localeCompare(b.full_name || ""));
+    setDownloadingTime("Users List");
+    setTimeout(() => {
+      try {
+        const sortedUsers = [...users]
+          .filter((u: any) =>
+            (u.full_name || "").toLowerCase().includes(userSearch.toLowerCase()) ||
+            (u.email || "").toLowerCase().includes(userSearch.toLowerCase())
+          )
+          .sort((a, b) => (a.full_name || "").localeCompare(b.full_name || ""));
 
-    const headers = ["ID", "Username", "Email"];
-    const csvContent = [
-      headers.join(","),
-      ...sortedUsers.map((u: any) => `${u.id},"${u.full_name || ""}","${u.email || ""}"`)
-    ].join("\n");
+        const headers = ["ID", "Username", "Email", "Phone Number", "Role", "Created At"];
+        const csvContent = [
+          headers.join(","),
+          ...sortedUsers.map((u: any) => `${u.id},"${u.full_name || ""}","${u.email || ""}","${u.phone_number || ""}","${u.role || ""}","${u.created_at || ""}"`)
+        ].join("\n");
 
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", "users_export.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", "users_export.csv");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setDownloadingTime(null);
+      }
+    }, 600);
   };
 
-  const downloadSearches = async () => {
+  const downloadSearches = async (timePeriod: string) => {
+    setDownloadingTime(timePeriod);
     try {
-      const res = await api.get("/admin/analytics/searches");
-      const csvContent = "data:text/csv;charset=utf-8,"
-        + "ID,Query,Emirate,City,Timestamp\n"
-        + res.data.map((row: any) => `${row.id},${row.query || ""},${row.emirate || ""},${row.city || ""},${row.timestamp}`).join("\n");
-      const encodedUri = encodeURI(csvContent);
+      const res = await api.get(`/admin/search-history?time_period=${timePeriod}&emirate=${analyticsEmirate}`);
+      const headers = ["ID", "User Role", "Username", "Email", "Phone", "Query", "Category", "Emirate", "City", "Timestamp"];
+      const csvContent = [
+        headers.join(","),
+        ...res.data.map((row: any) => 
+          `${row.id},"${row.user_role || "Guest"}","${row.username || "Guest"}","${row.email || "Guest"}","${row.phone || "Guest"}","${row.query || ""}","${row.category || ""}","${row.emirate || ""}","${row.city || ""}","${row.timestamp}"`
+        )
+      ].join("\n");
+
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
-      link.setAttribute("href", encodedUri);
-      link.setAttribute("download", "search_history.csv");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `search_history_${timePeriod.replace(/\s+/g, '_')}_${analyticsEmirate}.csv`);
       document.body.appendChild(link);
       link.click();
+      document.body.removeChild(link);
     } catch (e) {
       console.error(e);
+    } finally {
+      setTimeout(() => {
+        setDownloadingTime(null);
+      }, 600);
     }
   };
 
   if (!userRole) {
-    return <div className="min-h-screen bg-[#0b0a0a] text-[#888] flex items-center justify-center font-sans">Checking authorization...</div>;
+    return (
+      <div className="min-h-screen bg-[#0b0a0a] flex items-center justify-center text-white">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#d4933a]"></div>
+      </div>
+    );
   }
 
   const renderContent = () => {
-    if (loading && activeTab !== "Add Catalog" && activeTab !== "Analytics" && activeTab !== "Users" && activeTab !== "Ads") {
-      return <div className="text-[#888]">Loading...</div>;
+    if (loading && activeTab !== "Ads") {
+      switch (activeTab) {
+        case "Dashboard":
+          return (
+            <div className="animate-pulse space-y-6">
+              <div className="h-8 bg-[#1f2022] rounded-lg w-1/4 mb-8"></div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="h-32 bg-[#1f2022] rounded-xl"></div>
+                ))}
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
+                <div className="h-96 bg-[#1f2022] rounded-xl"></div>
+                <div className="h-96 bg-[#1f2022] rounded-xl"></div>
+              </div>
+            </div>
+          );
+        case "Partners":
+        case "Users":
+          return (
+            <div className="animate-pulse space-y-6">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+                <div className="h-8 bg-[#1f2022] rounded-lg w-1/4"></div>
+                <div className="h-10 bg-[#1f2022] rounded-lg w-32"></div>
+              </div>
+              <div className="h-12 bg-[#1f2022] rounded-xl w-full mb-6"></div>
+              <div className="bg-[#1f2022] rounded-xl p-6 space-y-4">
+                <div className="h-6 bg-[#2a2b2d] rounded w-full"></div>
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <div key={i} className="h-14 bg-[#222325] rounded-lg w-full"></div>
+                ))}
+              </div>
+            </div>
+          );
+        case "Mods":
+          return (
+            <div className="animate-pulse space-y-6">
+              <div className="h-8 bg-[#1f2022] rounded-lg w-1/4 mb-8"></div>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="lg:col-span-1 h-80 bg-[#1f2022] rounded-xl"></div>
+                <div className="lg:col-span-2 bg-[#1f2022] rounded-xl p-6 space-y-4">
+                  <div className="h-6 bg-[#2a2b2d] rounded w-full"></div>
+                  {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="h-14 bg-[#222325] rounded-lg w-full"></div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          );
+        case "User Logs":
+          return (
+            <div className="animate-pulse space-y-6">
+              <div className="h-8 bg-[#1f2022] rounded-lg w-1/4 mb-8"></div>
+              <div className="h-12 bg-[#1f2022] rounded-xl w-full mb-6"></div>
+              <div className="space-y-4">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <div key={i} className="h-20 bg-[#1f2022] rounded-xl w-full"></div>
+                ))}
+              </div>
+            </div>
+          );
+        case "Add Catalog":
+          return (
+            <div className="animate-pulse space-y-6">
+              <div className="h-8 bg-[#1f2022] rounded-lg w-1/4 mb-8"></div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="h-96 bg-[#1f2022] rounded-xl"></div>
+                <div className="h-96 bg-[#1f2022] rounded-xl"></div>
+              </div>
+            </div>
+          );
+        case "Analytics":
+          return (
+            <div className="animate-pulse space-y-6">
+              <div className="h-8 bg-[#1f2022] rounded-lg w-1/4 mb-8"></div>
+              {/* Filter Placeholder */}
+              <div className="h-32 bg-[#1f2022] rounded-xl w-full mb-6"></div>
+              {/* Graph Container Placeholder */}
+              <div className="h-[360px] bg-[#1f2022] rounded-xl w-full mb-6"></div>
+              {/* Download Section Placeholder */}
+              <div className="h-64 bg-[#1f2022] rounded-xl w-full"></div>
+            </div>
+          );
+        default:
+          return (
+            <div className="animate-pulse space-y-6">
+              <div className="h-8 bg-[#1f2022] rounded-lg w-1/4 mb-4"></div>
+              <div className="h-64 bg-[#1f2022] rounded-xl w-full"></div>
+            </div>
+          );
+      }
     }
 
     switch (activeTab) {
@@ -534,6 +681,8 @@ export default function AdminDashboard() {
                       <th className="p-5 text-[#888] font-semibold text-xs uppercase tracking-wider w-20">ID</th>
                       <th className="p-5 text-[#888] font-semibold text-xs uppercase tracking-wider">Username</th>
                       <th className="p-5 text-[#888] font-semibold text-xs uppercase tracking-wider">Email</th>
+                      <th className="p-5 text-[#888] font-semibold text-xs uppercase tracking-wider">Phone Number</th>
+                      <th className="p-5 text-[#888] font-semibold text-xs uppercase tracking-wider">Role</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#222]">
@@ -556,6 +705,14 @@ export default function AdminDashboard() {
                           </td>
                           <td className="p-5">
                             <span className="text-[#888] text-sm">{u.email}</span>
+                          </td>
+                          <td className="p-5">
+                            <span className="text-[#888] text-sm">{u.phone_number || "N/A"}</span>
+                          </td>
+                          <td className="p-5">
+                            <span className={`text-xs px-2 py-1 rounded font-medium ${u.role === 'PARTNER' ? 'bg-[#d4933a]/20 text-[#d4933a]' : 'bg-[#222] text-[#888]'}`}>
+                              {u.role || 'USER'}
+                            </span>
                           </td>
                         </tr>
                       ))}
@@ -585,12 +742,12 @@ export default function AdminDashboard() {
         return (
           <div className="animate-fade-in">
             <h2 className="text-2xl font-medium mb-8 text-white tracking-wide">Current & Banned Moderators</h2>
-            
+
             <div className="mb-6 relative w-full sm:w-96">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#888]" />
-              <input 
-                type="text" 
-                placeholder="Search by Name, Email, or ID..." 
+              <input
+                type="text"
+                placeholder="Search by Name, Email, or ID..."
                 value={modSearch}
                 onChange={(e) => setModSearch(e.target.value)}
                 className="w-full bg-[#151515] border border-[#333] focus:border-[#d4933a] rounded-xl pl-10 pr-4 py-3 text-white outline-none text-[13px] transition-colors"
@@ -698,16 +855,16 @@ export default function AdminDashboard() {
                 let actorRoleDisplay = l.actor_role === "ADMIN" ? "admin" : (l.actor_role === "MODERATOR" ? "mod" : "system");
                 const actorNameStr = l.actor_name && l.actor_name !== "System" ? l.actor_name : "System";
                 const actorIdStr = l.actor_id ? l.actor_id : "N/A";
-                
+
                 const actorPrefix = l.actor_role === "ADMIN" ? "admin" : `${actorRoleDisplay} - (${actorNameStr} - (${actorIdStr}))`;
-                
+
                 let mainText = "";
                 if (l.target_partner_name) {
                   let actionText = (l.action || "").toLowerCase().replace(/_/g, ' ');
                   if (l.action === "VERIFY_PARTNER") actionText = "verified";
                   else if (l.action === "SUSPEND_PARTNER") actionText = "suspended";
                   else if (l.action === "BAN_PARTNER") actionText = "banned";
-                  
+
                   mainText = `${actorPrefix} ${actionText} (${l.target_partner_name} - (${l.target_partner_id}))`;
                 } else {
                   mainText = `${actorPrefix} performed action`;
@@ -738,7 +895,17 @@ export default function AdminDashboard() {
         );
 
       case "Analytics":
-        const maxSearches = Math.max(...searchAnalytics.map(s => s.count), 5000); // Default to 5000 for aesthetic scaling
+        const actualMax = Math.max(...searchAnalytics.map(s => s.count), 0);
+        let maxSearches = 10;
+        if (actualMax > 0) {
+          if (actualMax <= 10) maxSearches = 10;
+          else if (actualMax <= 50) maxSearches = 50;
+          else if (actualMax <= 100) maxSearches = 100;
+          else if (actualMax <= 200) maxSearches = 200;
+          else if (actualMax <= 500) maxSearches = 500;
+          else if (actualMax <= 1000) maxSearches = 1000;
+          else maxSearches = Math.ceil(actualMax / 500) * 500;
+        }
         return (
           <div className="animate-fade-in space-y-6">
             <h2 className="text-2xl font-medium text-white tracking-wide mb-6">Analytics</h2>
@@ -752,7 +919,13 @@ export default function AdminDashboard() {
               <div className="flex flex-col sm:flex-row items-end gap-6">
                 <div className="flex-1 w-full">
                   <label className="text-[#888] text-[10px] uppercase font-bold tracking-widest mb-2 block">Time Period</label>
-                  <select className="w-full bg-[#111] border border-[#333] rounded-lg py-3 px-4 text-white outline-none focus:border-[#d4933a] appearance-none">
+                  <select 
+                    value={analyticsTime}
+                    onChange={(e) => setAnalyticsTime(e.target.value)}
+                    className="w-full bg-[#111] border border-[#333] rounded-lg py-3 px-4 text-white outline-none focus:border-[#d4933a] appearance-none cursor-pointer"
+                    style={{ cursor: "pointer" }}
+                  >
+                    <option>Today</option>
                     <option>This Week</option>
                     <option>This Month</option>
                     <option>This Year</option>
@@ -761,37 +934,58 @@ export default function AdminDashboard() {
                 </div>
                 <div className="flex-1 w-full">
                   <label className="text-[#888] text-[10px] uppercase font-bold tracking-widest mb-2 block">EMIRATES</label>
-                  <select className="w-full bg-[#111] border border-[#333] rounded-lg py-3 px-4 text-white outline-none focus:border-[#d4933a] appearance-none">
+                  <select 
+                    value={analyticsEmirate}
+                    onChange={(e) => setAnalyticsEmirate(e.target.value)}
+                    className="w-full bg-[#111] border border-[#333] rounded-lg py-3 px-4 text-white outline-none focus:border-[#d4933a] appearance-none cursor-pointer"
+                    style={{ cursor: "pointer" }}
+                  >
                     <option>All</option>
                     <option>Dubai</option>
                     <option>Abu Dhabi</option>
                     <option>Sharjah</option>
                   </select>
                 </div>
-                <button className="bg-[#d4933a] hover:bg-[#c28532] text-white py-3 px-8 rounded-lg font-bold transition-all h-[46px] whitespace-nowrap">
-                  Apply Filter
+                <button 
+                  onClick={applyAnalyticsFilter}
+                  disabled={analyticsLoading}
+                  className="bg-[#d4933a] hover:bg-[#c28532] text-white py-3 px-8 rounded-lg font-bold transition-all h-[46px] whitespace-nowrap cursor-pointer flex items-center justify-center min-w-[150px] disabled:opacity-50"
+                >
+                  {analyticsLoading ? (
+                    <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div>
+                  ) : (
+                    "Apply Filter"
+                  )}
                 </button>
               </div>
             </div>
 
             {/* Search Per Service Graph */}
-            <div className="bg-[#1f2022] border border-[#2e2f31] rounded-xl p-8 pb-12 mt-6">
+            <div className="bg-[#1f2022] border border-[#2e2f31] rounded-xl p-8 pb-6 mt-6 relative overflow-hidden">
+              {/* Spinner Overlay */}
+              {(loading || analyticsLoading) && (
+                <div className="absolute inset-0 bg-[#1f2022]/85 backdrop-blur-[2px] z-20 flex flex-col items-center justify-center gap-3">
+                  <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-[#d4933a]"></div>
+                  <span className="text-[#d4933a] text-sm font-medium tracking-wide">Loading search metrics...</span>
+                </div>
+              )}
+
               <h3 className="text-[#d4933a] text-xl font-medium mb-1">Search Per Service</h3>
               <p className="text-[#888] text-xs mb-12">Total Number of Searches for each services</p>
 
-              <div className="relative h-[300px] w-full mt-8">
-                {/* Y-axis lines */}
-                <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
-                  {[5000, 2000, 1000, 100, 50, 0].map(val => (
-                    <div key={val} className="flex items-center w-full">
+              <div className="relative h-[290px] w-full mt-8">
+                {/* Y-axis lines (Grid spans exactly 250px height) */}
+                <div className="absolute top-0 left-0 right-0 h-[250px] flex flex-col justify-between pointer-events-none">
+                  {[maxSearches, Math.round(maxSearches * 0.8), Math.round(maxSearches * 0.6), Math.round(maxSearches * 0.4), Math.round(maxSearches * 0.2), 0].map((val, i) => (
+                    <div key={i} className="flex items-center w-full">
                       <span className="w-12 text-[#888] text-[10px] text-right pr-4">{val}</span>
                       <div className="flex-1 border-t border-[#333]"></div>
                     </div>
                   ))}
                 </div>
 
-                {/* Bars container */}
-                <div className="absolute inset-0 pl-16 flex items-end justify-around pb-[1px] pr-4">
+                {/* Bars container (Scroll area covers full 290px, shifted left-16 to avoid Y-axis overlap) */}
+                <div className="absolute top-0 bottom-0 left-16 right-0 flex items-start justify-start gap-4 pr-4 overflow-x-auto scrollbar-hide h-[290px]">
                   {searchAnalytics.length === 0 ? (
                     <div className="absolute inset-0 flex items-center justify-center text-[#888] text-sm">
                       No search data available.
@@ -804,15 +998,28 @@ export default function AdminDashboard() {
                       }
 
                       return (
-                        <div key={idx} className="relative flex flex-col items-center w-20 group">
-                          <span className="absolute -top-6 text-white text-xs">{item.count}</span>
-                          <div
-                            className="w-full bg-[#d4933a] rounded-t-sm transition-all duration-1000 ease-out"
-                            style={{ height: `${heightPct}%` }}
-                          ></div>
-                          <span className="absolute -bottom-8 text-white text-[11px] font-medium text-center w-full truncate px-1">
-                            {item.label}
-                          </span>
+                        <div key={idx} className="relative flex flex-col items-center h-[290px] w-20 min-w-[90px] group">
+                          {/* Container for count and bar to keep baseline aligned to 0 line */}
+                          <div className="h-[250px] w-full flex flex-col justify-end items-center">
+                            {/* Count text */}
+                            <span className="text-white text-xs mb-2 font-medium">{item.count}</span>
+                            
+                            {/* Yellow Bar */}
+                            <div
+                              className="w-full bg-[#d4933a] rounded-t-sm transition-all duration-1000 ease-out shadow-[0_-2px_10px_rgba(212,147,58,0.2)]"
+                              style={{ height: `${heightPct * 0.8}%` }}
+                            ></div>
+                          </div>
+                          
+                          {/* Service Label (Placed below the 0 baseline) */}
+                          <div className="h-[40px] flex items-start justify-center mt-2 w-full">
+                            <span 
+                              className="text-[#d2d2d2] text-[11px] font-medium text-center w-full line-clamp-2 px-1 break-words cursor-help" 
+                              title={item.label}
+                            >
+                              {item.label}
+                            </span>
+                          </div>
                         </div>
                       )
                     })
@@ -828,11 +1035,11 @@ export default function AdminDashboard() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                 {[
-                  { title: "Today", desc: "Download today's search data" },
-                  { title: "This week", desc: "Download this week's search data" },
-                  { title: "This Month", desc: "Download this month's search data" },
-                  { title: "This Year", desc: "Download this year's search data" },
-                  { title: "All time", desc: "Download all time search data" }
+                  { title: "Today", timePeriod: "Today", desc: "Download today's search data" },
+                  { title: "This week", timePeriod: "This Week", desc: "Download this week's search data" },
+                  { title: "This Month", timePeriod: "This Month", desc: "Download this month's search data" },
+                  { title: "This Year", timePeriod: "This Year", desc: "Download this year's search data" },
+                  { title: "All time", timePeriod: "All Time", desc: "Download all time search data" }
                 ].map((card, i) => (
                   <div key={i} className="border border-[#333] rounded-xl p-5 flex flex-col items-center text-center bg-[#18191a]">
                     <div className="w-10 h-10 rounded-full border border-[#d4933a]/50 text-[#d4933a] flex items-center justify-center mb-4 bg-[#d4933a]/10">
@@ -841,10 +1048,11 @@ export default function AdminDashboard() {
                     <h4 className="text-white text-sm font-medium mb-1">{card.title}</h4>
                     <p className="text-[#888] text-[10px] mb-5 h-8 leading-tight">{card.desc}</p>
                     <button
-                      onClick={downloadSearches}
-                      className="w-full bg-[#222] border border-[#333] hover:border-[#d4933a] hover:text-[#d4933a] text-[#888] py-2 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all"
+                      onClick={() => downloadSearches(card.timePeriod)}
+                      disabled={downloadingTime !== null}
+                      className="w-full bg-[#222] border border-[#333] hover:border-[#d4933a] hover:text-[#d4933a] text-[#888] py-2 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      Download <Download className="w-3.5 h-3.5" />
+                      {downloadingTime === card.timePeriod ? "Downloading..." : "Download"} <Download className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 ))}
@@ -862,8 +1070,8 @@ export default function AdminDashboard() {
 
             {catalogMsg.text && (
               <div className={`mb-6 p-4 rounded-xl border flex items-center gap-3 ${catalogMsg.type === 'success'
-                  ? 'bg-green-500/10 border-green-500/30 text-green-400'
-                  : 'bg-red-500/10 border-red-500/30 text-red-400'
+                ? 'bg-green-500/10 border-green-500/30 text-green-400'
+                : 'bg-red-500/10 border-red-500/30 text-red-400'
                 }`}>
                 {catalogMsg.type === 'success' ? <Check className="w-5 h-5" /> : <X className="w-5 h-5" />}
                 <span className="font-medium text-[15px]">{catalogMsg.text}</span>
@@ -977,15 +1185,13 @@ export default function AdminDashboard() {
                             <button
                               type="button"
                               onClick={() => toggleEmirateVisibility(emirate.id)}
-                              className={`relative inline-flex h-5.5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none mr-1.5 self-center ${
-                                emirate.is_visible ? "bg-[#d4933a]" : "bg-[#252525]"
-                              }`}
+                              className={`relative inline-flex h-5.5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none mr-1.5 self-center ${emirate.is_visible ? "bg-[#d4933a]" : "bg-[#252525]"
+                                }`}
                               title={emirate.is_visible ? "Hide Emirate from site" : "Show Emirate on site"}
                             >
                               <span
-                                className={`pointer-events-none inline-block h-4.5 w-4.5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                                  emirate.is_visible ? "translate-x-4.5" : "translate-x-0"
-                                }`}
+                                className={`pointer-events-none inline-block h-4.5 w-4.5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${emirate.is_visible ? "translate-x-4.5" : "translate-x-0"
+                                  }`}
                               />
                             </button>
                             <button
@@ -1036,14 +1242,6 @@ export default function AdminDashboard() {
         );
     }
   };
-
-  if (loading || !userRole) {
-    return (
-      <div className="min-h-screen bg-[#0b0a0a] flex items-center justify-center text-white">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#d4933a]"></div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-[#0b0a0a] flex font-sans">
@@ -1103,8 +1301,8 @@ export default function AdminDashboard() {
                   setIsMobileMenuOpen(false);
                 }}
                 className={`w-full flex items-center gap-4 px-6 py-4 transition-all duration-200 border-l-[3px]
-                  ${isActive 
-                    ? "bg-[#d4933a]/10 text-[#d4933a] border-[#d4933a] font-medium" 
+                  ${isActive
+                    ? "bg-[#d4933a]/10 text-[#d4933a] border-[#d4933a] font-medium"
                     : "text-[#888] border-transparent hover:bg-[#1a1a1a] hover:text-white"
                   }`}
               >
@@ -1133,6 +1331,14 @@ export default function AdminDashboard() {
           {renderContent()}
         </div>
       </main>
+
+      {/* Download Loader Overlay */}
+      {downloadingTime && (
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-[9999] flex flex-col items-center justify-center gap-3">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#d4933a]"></div>
+          <span className="text-white text-base font-medium tracking-wide">Preparing your search history report for {downloadingTime}...</span>
+        </div>
+      )}
 
     </div>
   );

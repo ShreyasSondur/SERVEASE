@@ -70,7 +70,7 @@ export default function Signup() {
             }
           }
           
-          window.location.href = redirectPath;
+          window.location.href = `/signup/phone?redirect=${encodeURIComponent(redirectPath)}`;
         }
       }
     } catch (err: any) {
