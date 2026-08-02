@@ -150,7 +150,7 @@ export default function Hero() {
 
             {/* Subheading */}
             <p className="mt-4 sm:mt-6 text-sm sm:text-base md:text-lg text-[#D4D2CD] font-light leading-relaxed font-sans animate-fade-in delay-200">
-              From small fixes to big projects — connect with verified workers nearby.
+              From small fixes to big projects — connect with verified professionals nearby.
             </p>
 
             {/* Search Form */}
