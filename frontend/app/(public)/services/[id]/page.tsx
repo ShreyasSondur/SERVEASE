@@ -49,7 +49,7 @@ export default function ServiceDetail() {
     if (!localStorage.getItem("token")) {
       setShowAuthRequiredModal(true);
       return;
-    } 
+    }
 
     if (userProfile && !userProfile.phone_number) {
       setShowPhoneRequiredModal(true);
@@ -61,8 +61,8 @@ export default function ServiceDetail() {
         const userRes = await api.get("/auth/me");
         setUserProfile(userRes.data);
         if (!userRes.data.phone_number) {
-           setShowPhoneRequiredModal(true);
-           return;
+          setShowPhoneRequiredModal(true);
+          return;
         }
       } catch (e) {
         setShowAuthRequiredModal(true);
@@ -110,8 +110,8 @@ export default function ServiceDetail() {
       <main className="flex-grow w-full max-w-[1200px] mx-auto px-4 sm:px-6 md:px-8 py-10 pt-28">
         {/* Back Navigation */}
         <div className="mb-6 animate-fade-in">
-          <Link 
-            href="/services" 
+          <Link
+            href="/services"
             className="flex items-center gap-2 text-white/50 hover:text-white transition-colors text-sm font-semibold tracking-wide cursor-pointer group"
           >
             <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
@@ -123,10 +123,10 @@ export default function ServiceDetail() {
         <h1 className="text-2xl sm:text-3xl md:text-[32px] font-medium mb-6 sm:mb-8 text-white tracking-wide animate-fade-in">
           {service.title}
         </h1>
-        
+
         {/* Top Grid: Image & Info Cards */}
         <div className="flex flex-col lg:flex-row gap-5 sm:gap-6 mb-6 sm:mb-8 animate-slide-up">
-          
+
           {/* Left: Image Card */}
           <div className="w-full lg:w-[65%] rounded-2xl min-h-[250px] sm:min-h-[350px] lg:min-h-[400px] shadow-lg overflow-hidden relative">
             <ImageCarousel
@@ -139,7 +139,7 @@ export default function ServiceDetail() {
 
           {/* Right: Info Cards */}
           <div className="w-full lg:w-[35%] flex flex-col gap-4 sm:gap-5">
-            
+
             {/* Posted By Card */}
             <div className="bg-[#151515] border border-[#222] rounded-2xl p-5 sm:p-6 shadow-md transition-colors hover:border-[#333]">
               <h3 className="text-[#aaa] text-[11px] font-bold uppercase tracking-widest mb-4">
@@ -163,7 +163,7 @@ export default function ServiceDetail() {
                   )}
                 </div>
               </div>
-              <button 
+              <button
                 onClick={handleContactClick}
                 className="w-full bg-[#d4933a] hover:bg-[#c28532] text-white font-bold tracking-wide py-3.5 rounded-xl text-sm transition-all shadow-[0_0_15px_rgba(212,147,58,0.2)] hover:shadow-[0_0_25px_rgba(212,147,58,0.4)] cursor-pointer"
               >
@@ -215,17 +215,17 @@ export default function ServiceDetail() {
             {service.description}
           </div>
         </div>
-        
+
       </main>
-      
+
       <Footer />
 
       {/* Auth required modal */}
       {showAuthRequiredModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
           <div className="bg-[#151515] border border-[#222] rounded-3xl p-8 max-w-md w-full text-center shadow-2xl animate-fade-in relative text-white">
-            <button 
-              onClick={() => setShowAuthRequiredModal(false)} 
+            <button
+              onClick={() => setShowAuthRequiredModal(false)}
               className="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors cursor-pointer"
             >
               <X className="w-5 h-5" />
@@ -238,17 +238,15 @@ export default function ServiceDetail() {
               Please log in or register for a free account to view this partner's contact details and connect with them.
             </p>
             <div className="flex flex-col gap-3">
-              <Link 
-                href={`/login?redirect=/services/${service.id}`}
-                className="w-full bg-[#d4933a] hover:bg-[#c28532] text-white py-3.5 rounded-xl font-bold transition-all shadow-[0_0_15px_rgba(212,147,58,0.25)] text-center flex items-center justify-center cursor-pointer touch-manipulation"
-              >
-                Log In
+              <Link href={`/login?redirect=/services/${service.id}`}>
+                <button className="w-full bg-[#d4933a] hover:bg-[#c28532] text-white py-3.5 rounded-xl font-bold transition-all shadow-[0_0_15px_rgba(212,147,58,0.25)] cursor-pointer">
+                  Log In
+                </button>
               </Link>
-              <Link 
-                href={`/signup?redirect=/services/${service.id}`}
-                className="w-full bg-[#222] border border-[#333] hover:border-[#444] text-[#aaa] hover:text-white py-3.5 rounded-xl font-bold transition-all text-center flex items-center justify-center cursor-pointer touch-manipulation"
-              >
-                Register for Free
+              <Link href={`/signup?redirect=/services/${service.id}`}>
+                <button className="w-full bg-[#222] border border-[#333] hover:border-[#444] text-[#aaa] hover:text-white py-3.5 rounded-xl font-bold transition-all cursor-pointer">
+                  Register for Free
+                </button>
               </Link>
             </div>
           </div>
@@ -259,20 +257,20 @@ export default function ServiceDetail() {
       {showContactModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
           <div className="bg-[#151515] border border-[#222] rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl animate-fade-in relative text-white">
-            <button 
-              onClick={() => setShowContactModal(false)} 
+            <button
+              onClick={() => setShowContactModal(false)}
               className="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
-            
+
             <h3 className="text-xl font-bold tracking-wide text-white mb-2">
               Contact Provider
             </h3>
             <p className="text-[#d4933a] text-[15px] font-semibold mb-6 font-serif">
               {partnerName}
             </p>
-            
+
             <div className="flex flex-col gap-4 mb-8">
               <div className="flex items-center gap-3 bg-[#111] p-4 rounded-xl border border-[#222]">
                 <Phone className="w-5 h-5 text-white/50" />
@@ -281,7 +279,7 @@ export default function ServiceDetail() {
                   <span className="text-[15px] font-medium">{service.partner?.phone ? `+971 ${service.partner.phone.replace(/^\+?971/, '').trim()}` : ''}</span>
                 </div>
               </div>
-              
+
               {service.partner?.email && (
                 <div className="flex items-center gap-3 bg-[#111] p-4 rounded-xl border border-[#222]">
                   <span className="text-[15px] text-white/50 font-bold shrink-0">@</span>
@@ -292,15 +290,15 @@ export default function ServiceDetail() {
                 </div>
               )}
             </div>
-            
+
             <div className="flex flex-col sm:flex-row gap-3">
-              <a 
+              <a
                 href={service.partner?.phone ? `tel:+971${service.partner.phone.replace(/^\+?971/, '').replace(/\D/g, '')}` : '#'}
                 className="flex-1 bg-[#222] hover:bg-[#333] border border-[#333] hover:border-[#d4933a] text-white py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-all cursor-pointer"
               >
                 <Phone className="w-4 h-4" /> Call Now
               </a>
-              <a 
+              <a
                 href={service.partner?.phone ? `https://wa.me/971${service.partner.phone.replace(/^\+?971/, '').replace(/\D/g, '')}` : '#'}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -329,7 +327,7 @@ export default function ServiceDetail() {
             <p className="text-[#888] text-sm leading-relaxed mb-6 text-center">
               Please provide your phone number to view contact details. This helps service providers reach you if needed.
             </p>
-            
+
             {phoneError && (
               <div className="mb-4 p-3 bg-red-500/10 border border-red-500/50 rounded-xl text-red-500 text-sm text-center">
                 {phoneError}
@@ -372,7 +370,7 @@ export default function ServiceDetail() {
                   />
                 </div>
               </div>
-              
+
               <button
                 type="submit"
                 disabled={isSubmittingPhone}

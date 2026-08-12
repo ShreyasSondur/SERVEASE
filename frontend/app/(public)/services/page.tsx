@@ -80,7 +80,7 @@ export default function Services() {
       const adsMap: Record<string, any> = {};
       res.data.forEach((ad: any) => adsMap[ad.position] = ad);
       setAds(adsMap);
-    }).catch(() => {});
+    }).catch(() => { });
 
     const fetchCatalogAndSearch = async () => {
       try {
@@ -154,10 +154,10 @@ export default function Services() {
         const token = localStorage.getItem("token");
         if (token) {
           try {
-             const userRes = await api.get("/auth/me");
-             setUserProfile(userRes.data);
-          } catch(e) {
-             console.error(e);
+            const userRes = await api.get("/auth/me");
+            setUserProfile(userRes.data);
+          } catch (e) {
+            console.error(e);
           }
         }
         setIsLoggedIn(!!token);
@@ -229,7 +229,7 @@ export default function Services() {
       setSelectedServiceForContact(service);
       setShowAuthRequiredModal(true);
       return;
-    } 
+    }
 
     if (userProfile && !userProfile.phone_number) {
       setSelectedServiceForContact(service);
@@ -242,9 +242,9 @@ export default function Services() {
         const userRes = await api.get("/auth/me");
         setUserProfile(userRes.data);
         if (!userRes.data.phone_number) {
-           setSelectedServiceForContact(service);
-           setShowPhoneRequiredModal(true);
-           return;
+          setSelectedServiceForContact(service);
+          setShowPhoneRequiredModal(true);
+          return;
         }
       } catch (e) {
         setShowAuthRequiredModal(true);
@@ -512,104 +512,102 @@ export default function Services() {
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Services List */}
           <div className="flex-1 flex flex-col gap-10 md:gap-14">
-          {loading ? (
-            <div className="flex flex-col gap-10 md:gap-14 animate-pulse">
-              {[1, 2, 3].map((n) => (
-                <div key={n} className="flex flex-col lg:flex-row gap-5 md:gap-8">
-                  {/* Image Placeholder */}
-                  <div className="w-full lg:w-[320px] h-[220px] md:h-[250px] bg-[#1f2022] rounded-2xl flex-shrink-0"></div>
-                  {/* Content Placeholder */}
-                  <div className="flex flex-col flex-1 py-1 space-y-4">
-                    {/* Title */}
-                    <div className="h-6 bg-[#1f2022] rounded-lg w-3/4"></div>
-                    {/* Description */}
-                    <div className="space-y-2">
-                      <div className="h-4 bg-[#1f2022] rounded-lg w-full"></div>
-                      <div className="h-4 bg-[#1f2022] rounded-lg w-5/6"></div>
-                    </div>
-                    {/* Badges / Meta */}
-                    <div className="h-4 bg-[#1f2022] rounded-lg w-1/3 mt-auto"></div>
-                    {/* Footer / Buttons */}
-                    <div className="h-10 bg-[#1f2022] rounded-xl w-40 mt-4"></div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : services.length === 0 ? (
-            <div className="text-white text-center py-10">No services found.</div>
-          ) : (
-            services.map((service: any, index: number) => (
-              <div key={service.id} className="flex flex-col">
-                <div className="flex flex-col lg:flex-row gap-5 md:gap-8">
-                  {/* Image Carousel */}
-                  <div className="relative w-full lg:w-[320px] h-[220px] md:h-[250px] rounded-2xl flex-shrink-0 overflow-hidden shadow-lg">
-                    <ImageCarousel
-                      images={service.images}
-                      imageUrl={service.image_url}
-                      title={service.title}
-                      isFeatured={service.isFeatured}
-                    />
-                  </div>
-
-                  {/* Content */}
-                  <div className="flex flex-col flex-1 py-1">
-                    <h2 className="text-white text-lg sm:text-xl md:text-[22px] font-semibold mb-2 md:mb-3 tracking-wide">
-                      {service.title}
-                    </h2>
-
-                    {/* Tags */}
-                    <div className="flex flex-wrap gap-x-2 md:gap-x-3 gap-y-1.5 md:gap-y-2 mb-4 md:mb-6">
-                      <span className="text-[#A3A3A3] text-[11px] md:text-[12px] font-light">
-                        {service.description}
-                      </span>
-                    </div>
-
-                    {/* Verified Badge */}
-                    <div className="flex items-center gap-1.5 mb-auto pb-3 md:pb-4">
-                      <BadgeCheck className="w-3.5 h-3.5 md:w-4 md:h-4 text-black fill-[#2196F3]" strokeWidth={1} />
-                      <span className="text-[#2196F3] text-[10px] md:text-[11px] font-bold uppercase tracking-wider">
-                        VERIFIED PARTNER
-                      </span>
-                    </div>
-
-                    {/* Footer info */}
-                    <div className="flex items-center gap-4 md:gap-6 mt-3 md:mt-4 pt-3 md:pt-4">
-                      <div className="flex items-center gap-1.5 md:gap-2 text-white/80">
-                        <MapPin className="w-3.5 h-3.5 md:w-[14px] md:h-[14px] text-white/50" strokeWidth={2} />
-                        <span className="text-[12px] md:text-[13px] font-medium tracking-wide truncate max-w-[120px] sm:max-w-none">{service.city?.name || "Dubai"}</span>
+            {loading ? (
+              <div className="flex flex-col gap-10 md:gap-14 animate-pulse">
+                {[1, 2, 3].map((n) => (
+                  <div key={n} className="flex flex-col lg:flex-row gap-5 md:gap-8">
+                    {/* Image Placeholder */}
+                    <div className="w-full lg:w-[320px] h-[220px] md:h-[250px] bg-[#1f2022] rounded-2xl flex-shrink-0"></div>
+                    {/* Content Placeholder */}
+                    <div className="flex flex-col flex-1 py-1 space-y-4">
+                      {/* Title */}
+                      <div className="h-6 bg-[#1f2022] rounded-lg w-3/4"></div>
+                      {/* Description */}
+                      <div className="space-y-2">
+                        <div className="h-4 bg-[#1f2022] rounded-lg w-full"></div>
+                        <div className="h-4 bg-[#1f2022] rounded-lg w-5/6"></div>
                       </div>
-                      <div className="flex items-center gap-1.5 md:gap-2 text-white/80">
-                        <Briefcase className="w-3.5 h-3.5 md:w-[14px] md:h-[14px] text-white/50" strokeWidth={2} />
-                        <span className="text-[12px] md:text-[13px] font-medium tracking-wide">{service.category?.name || "Service"}</span>
-                      </div>
+                      {/* Badges / Meta */}
+                      <div className="h-4 bg-[#1f2022] rounded-lg w-1/3 mt-auto"></div>
+                      {/* Footer / Buttons */}
+                      <div className="h-10 bg-[#1f2022] rounded-xl w-40 mt-4"></div>
                     </div>
                   </div>
-
-                  {/* Action Buttons */}
-                  <div className="grid grid-cols-2 lg:flex lg:flex-col lg:justify-center gap-3 md:gap-4 w-full lg:w-[180px] shrink-0 mt-4 md:mt-6 lg:mt-0">
-                    <Link
-                      href={`/services/${service.id}`}
-                      prefetch={false}
-                      className="w-full bg-white hover:bg-gray-100 text-black py-2.5 md:py-3 rounded-full font-bold text-[13px] md:text-[14px] transition-colors shadow-md text-center flex items-center justify-center cursor-pointer active:scale-95 touch-manipulation"
-                    >
-                      View More
-                    </Link>
-                    <button
-                      onClick={() => handleContact(service)}
-                      className="w-full bg-[#d4933a] hover:bg-[#c28532] text-white py-2.5 md:py-3 rounded-full font-bold text-[13px] md:text-[14px] transition-colors shadow-lg cursor-pointer"
-                    >
-                      Contact Now
-                    </button>
-                  </div>
-                </div>
-
-                {/* Divider */}
-                {index < services.length - 1 && (
-                  <div className="w-full h-px bg-white/10 mt-8 md:mt-14" />
-                )}
+                ))}
               </div>
-            ))
-          )}
+            ) : services.length === 0 ? (
+              <div className="text-white text-center py-10">No services found.</div>
+            ) : (
+              services.map((service: any, index: number) => (
+                <div key={service.id} className="flex flex-col">
+                  <div className="flex flex-col lg:flex-row gap-5 md:gap-8">
+                    {/* Image Carousel */}
+                    <div className="relative w-full lg:w-[320px] h-[220px] md:h-[250px] rounded-2xl flex-shrink-0 overflow-hidden shadow-lg">
+                      <ImageCarousel
+                        images={service.images}
+                        imageUrl={service.image_url}
+                        title={service.title}
+                        isFeatured={service.isFeatured}
+                      />
+                    </div>
+
+                    {/* Content */}
+                    <div className="flex flex-col flex-1 py-1">
+                      <h2 className="text-white text-lg sm:text-xl md:text-[22px] font-semibold mb-2 md:mb-3 tracking-wide">
+                        {service.title}
+                      </h2>
+
+                      {/* Tags */}
+                      <div className="flex flex-wrap gap-x-2 md:gap-x-3 gap-y-1.5 md:gap-y-2 mb-4 md:mb-6">
+                        <span className="text-[#A3A3A3] text-[11px] md:text-[12px] font-light">
+                          {service.description}
+                        </span>
+                      </div>
+
+                      {/* Verified Badge */}
+                      <div className="flex items-center gap-1.5 mb-auto pb-3 md:pb-4">
+                        <BadgeCheck className="w-3.5 h-3.5 md:w-4 md:h-4 text-black fill-[#2196F3]" strokeWidth={1} />
+                        <span className="text-[#2196F3] text-[10px] md:text-[11px] font-bold uppercase tracking-wider">
+                          VERIFIED PARTNER
+                        </span>
+                      </div>
+
+                      {/* Footer info */}
+                      <div className="flex items-center gap-4 md:gap-6 mt-3 md:mt-4 pt-3 md:pt-4">
+                        <div className="flex items-center gap-1.5 md:gap-2 text-white/80">
+                          <MapPin className="w-3.5 h-3.5 md:w-[14px] md:h-[14px] text-white/50" strokeWidth={2} />
+                          <span className="text-[12px] md:text-[13px] font-medium tracking-wide truncate max-w-[120px] sm:max-w-none">{service.city?.name || "Dubai"}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 md:gap-2 text-white/80">
+                          <Briefcase className="w-3.5 h-3.5 md:w-[14px] md:h-[14px] text-white/50" strokeWidth={2} />
+                          <span className="text-[12px] md:text-[13px] font-medium tracking-wide">{service.category?.name || "Service"}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="grid grid-cols-2 lg:flex lg:flex-col lg:justify-center gap-3 md:gap-4 w-full lg:w-[180px] shrink-0 mt-4 md:mt-6 lg:mt-0">
+                      <Link href={`/services/${service.id}`} prefetch={false}>
+                        <button className="w-full bg-white hover:bg-gray-100 text-black py-2.5 md:py-3 rounded-full font-bold text-[13px] md:text-[14px] transition-colors shadow-md cursor-pointer">
+                          View More
+                        </button>
+                      </Link>
+                      <button
+                        onClick={() => handleContact(service)}
+                        className="w-full bg-[#d4933a] hover:bg-[#c28532] text-white py-2.5 md:py-3 rounded-full font-bold text-[13px] md:text-[14px] transition-colors shadow-lg cursor-pointer"
+                      >
+                        Contact Now
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Divider */}
+                  {index < services.length - 1 && (
+                    <div className="w-full h-px bg-white/10 mt-8 md:mt-14" />
+                  )}
+                </div>
+              ))
+            )}
           </div>
 
           {/* Ad 1 (Top Right) */}
@@ -650,8 +648,8 @@ export default function Services() {
                   window.scrollTo({ top: 0, behavior: "smooth" });
                 }}
                 className={`w-10 h-10 flex items-center justify-center rounded-full text-sm font-medium transition-colors ${currentPage === page
-                    ? "bg-[#d4933a] text-white"
-                    : "bg-[#222] border border-[#333] text-white hover:bg-[#333]"
+                  ? "bg-[#d4933a] text-white"
+                  : "bg-[#222] border border-[#333] text-white hover:bg-[#333]"
                   }`}
               >
                 {page}
@@ -704,17 +702,15 @@ export default function Services() {
               Please log in or register for a free account to view this partner's contact details and connect with them.
             </p>
             <div className="flex flex-col gap-3">
-              <Link 
-                href="/login?redirect=/services"
-                className="w-full bg-[#d4933a] hover:bg-[#c28532] text-white py-3.5 rounded-xl font-bold transition-all shadow-[0_0_15px_rgba(212,147,58,0.25)] text-center flex items-center justify-center cursor-pointer touch-manipulation"
-              >
-                Log In
+              <Link href="/login?redirect=/services">
+                <button className="w-full bg-[#d4933a] hover:bg-[#c28532] text-white py-3.5 rounded-xl font-bold transition-all shadow-[0_0_15px_rgba(212,147,58,0.25)] cursor-pointer">
+                  Log In
+                </button>
               </Link>
-              <Link 
-                href="/signup?redirect=/services"
-                className="w-full bg-[#222] border border-[#333] hover:border-[#444] text-[#aaa] hover:text-white py-3.5 rounded-xl font-bold transition-all text-center flex items-center justify-center cursor-pointer touch-manipulation"
-              >
-                Register for Free
+              <Link href="/signup?redirect=/services">
+                <button className="w-full bg-[#222] border border-[#333] hover:border-[#444] text-[#aaa] hover:text-white py-3.5 rounded-xl font-bold transition-all cursor-pointer">
+                  Register for Free
+                </button>
               </Link>
             </div>
           </div>
@@ -799,7 +795,7 @@ export default function Services() {
             <p className="text-[#888] text-sm leading-relaxed mb-6 text-center">
               Please provide your phone number to view contact details. This helps service providers reach you if needed.
             </p>
-            
+
             {phoneError && (
               <div className="mb-4 p-3 bg-red-500/10 border border-red-500/50 rounded-xl text-red-500 text-sm text-center">
                 {phoneError}
@@ -842,7 +838,7 @@ export default function Services() {
                   />
                 </div>
               </div>
-              
+
               <button
                 type="submit"
                 disabled={isSubmittingPhone}

@@ -41,7 +41,7 @@ export default function ImageCarousel({
     ...(Array.isArray(parsedImages) ? parsedImages : []),
     ...(imageUrl ? [imageUrl] : []),
   ];
-  
+
   // Deduplicate and filter out empty strings
   const validImages = Array.from(new Set(rawImages)).filter(
     (img) => typeof img === "string" && img.trim() !== ""
@@ -103,7 +103,7 @@ export default function ImageCarousel({
   };
 
   return (
-    <div 
+    <div
       className="relative w-full h-full group overflow-hidden rounded-2xl bg-black"
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
@@ -119,9 +119,8 @@ export default function ImageCarousel({
             fill
             priority={index === 0}
             sizes="(max-width: 768px) 100vw, 50vw"
-            className={`absolute inset-0 object-cover transition-opacity duration-500 ease-in-out ${
-              index === activeIndex ? "opacity-100 z-10" : "opacity-0 z-0"
-            }`}
+            className={`absolute inset-0 object-cover transition-opacity duration-500 ease-in-out ${index === activeIndex ? "opacity-100 z-10" : "opacity-0 z-0"
+              }`}
           />
         ))}
       </div>
@@ -161,9 +160,8 @@ export default function ImageCarousel({
             <button
               key={index}
               onClick={(e) => handleDotClick(e, index)}
-              className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
-                index === activeIndex ? "bg-white w-3" : "bg-white/50 hover:bg-white/80"
-              }`}
+              className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${index === activeIndex ? "bg-white w-3" : "bg-white/50 hover:bg-white/80"
+                }`}
               aria-label={`Go to slide ${index + 1}`}
             />
           ))}
