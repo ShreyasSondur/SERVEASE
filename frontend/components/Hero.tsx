@@ -58,30 +58,16 @@ export default function Hero() {
         setCities(cityRes.data);
         setGlobalServices(catRes.data);
 
-        // Try IP geolocation for auto-fill
+        // Instant local timezone check for auto-fill
         try {
-          const geoRes = await fetch("https://ipapi.co/json/");
-          const geoData = await geoRes.json();
-          if (geoData.country_name === "United Arab Emirates") {
-            const matchedEm = emRes.data.find((e: any) => e.name.toLowerCase() === geoData.region.toLowerCase() || e.name.toLowerCase() === geoData.city.toLowerCase());
+          const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+          if (tz.includes("Dubai")) {
+            const matchedEm = emRes.data.find((e: any) => e.name.toLowerCase().includes("dubai"));
             if (matchedEm) {
               setSelectedEmirateId(matchedEm.id.toString());
-              const matchedCity = cityRes.data.find((c: any) => c.emirate_id === matchedEm.id && c.name.toLowerCase() === geoData.city.toLowerCase());
-              if (matchedCity) {
-                setSelectedCityId(matchedCity.id.toString());
-              } else {
-                setSelectedCityId("");
-              }
-            } else {
-              setSelectedEmirateId("");
-              setSelectedCityId("");
             }
-          } else {
-            setSelectedEmirateId("");
-            setSelectedCityId("");
           }
         } catch (geoErr) {
-          console.error("Geo fallback error:", geoErr);
           setSelectedEmirateId("");
           setSelectedCityId("");
         }

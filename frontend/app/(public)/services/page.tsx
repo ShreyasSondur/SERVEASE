@@ -84,21 +84,36 @@ export default function Services() {
 
     const fetchCatalogAndSearch = async () => {
       try {
-        const [emRes, cityRes, catRes] = await Promise.all([
+        const catalogPromise = Promise.all([
           api.get("/catalog/emirates"),
           api.get("/catalog/cities"),
           api.get("/catalog/services")
         ]);
-        setEmirates(emRes.data);
-        setCities(cityRes.data);
-        setGlobalServices(catRes.data);
 
-        // Pre-populate from URL query params
         const params = new URLSearchParams(window.location.search);
         const qParam = params.get("q") || "";
         const emirateParam = params.get("emirate") || "";
         const areaParam = params.get("area") || "";
         const categoryIdParam = params.get("category_id") || "";
+
+        // If direct params available, launch search immediately in parallel
+        let initialSearchUrl = `/search/?page=1&limit=${limit}&`;
+        if (categoryIdParam) {
+          initialSearchUrl += `category_id=${categoryIdParam}&`;
+        } else if (qParam) {
+          initialSearchUrl += `q=${encodeURIComponent(qParam)}&`;
+        }
+
+        const searchPromise = api.get(initialSearchUrl);
+
+        const [[emRes, cityRes, catRes], searchRes] = await Promise.all([
+          catalogPromise,
+          searchPromise.catch(() => null)
+        ]);
+
+        setEmirates(emRes.data);
+        setCities(cityRes.data);
+        setGlobalServices(catRes.data);
 
         let emirateId = "";
         let cityId = "";
@@ -148,21 +163,23 @@ export default function Services() {
         setIsLoggedIn(!!token);
         setCheckedAuth(true);
 
-        setLoading(true);
-        let url = `/search/?page=1&limit=${limit}&`;
-        if (emirateId) url += `emirate_id=${emirateId}&`;
-        if (cityId) url += `city_id=${cityId}&`;
-        if (globalServiceId) {
-          url += `category_id=${globalServiceId}&`;
-        } else if (qParam) {
-          url += `q=${encodeURIComponent(qParam)}&`;
-        }
-        if (selectedSort) url += `sort=${selectedSort}&`;
+        // If string filtering (emirate/area) required refining search, do secondary fetch, otherwise use searchRes
+        if ((emirateParam && emirateId) || (areaParam && cityId)) {
+          let refinedUrl = `/search/?page=1&limit=${limit}&`;
+          if (emirateId) refinedUrl += `emirate_id=${emirateId}&`;
+          if (cityId) refinedUrl += `city_id=${cityId}&`;
+          if (globalServiceId) refinedUrl += `category_id=${globalServiceId}&`;
+          else if (qParam) refinedUrl += `q=${encodeURIComponent(qParam)}&`;
 
-        const response = await api.get(url);
-        setServices(response.data.items || []);
-        setTotalItems(response.data.total || 0);
-        setTotalPages(Math.ceil((response.data.total || 0) / limit) || 1);
+          const response = await api.get(refinedUrl);
+          setServices(response.data.items || []);
+          setTotalItems(response.data.total || 0);
+          setTotalPages(Math.ceil((response.data.total || 0) / limit) || 1);
+        } else if (searchRes) {
+          setServices(searchRes.data.items || []);
+          setTotalItems(searchRes.data.total || 0);
+          setTotalPages(Math.ceil((searchRes.data.total || 0) / limit) || 1);
+        }
         setCurrentPage(1);
       } catch (err) {
         console.error("Failed to load catalog and search:", err);
@@ -570,10 +587,11 @@ export default function Services() {
 
                   {/* Action Buttons */}
                   <div className="grid grid-cols-2 lg:flex lg:flex-col lg:justify-center gap-3 md:gap-4 w-full lg:w-[180px] shrink-0 mt-4 md:mt-6 lg:mt-0">
-                    <Link href={`/services/${service.id}`}>
+                    <Link href={`/services/${service.id}`} prefetch={false}>
                       <button className="w-full bg-white hover:bg-gray-100 text-black py-2.5 md:py-3 rounded-full font-bold text-[13px] md:text-[14px] transition-colors shadow-md cursor-pointer">
                         View More
-                      </button></Link>
+                      </button>
+                    </Link>
                     <button
                       onClick={() => handleContact(service)}
                       className="w-full bg-[#d4933a] hover:bg-[#c28532] text-white py-2.5 md:py-3 rounded-full font-bold text-[13px] md:text-[14px] transition-colors shadow-lg cursor-pointer"

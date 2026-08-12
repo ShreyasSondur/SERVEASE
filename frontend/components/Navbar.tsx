@@ -107,22 +107,8 @@ export default function Navbar() {
     const dismissed = localStorage.getItem("serviz_country_choice_dismissed");
     if (dismissed === "true") return;
 
-    const detectCountry = async () => {
-      try {
-        const res = await fetch("https://ipapi.co/json/");
-        const data = await res.json();
-        const countryCode = data.country_code; // e.g., "IN", "SA", "OM", "AE"
-
-        const matchedCountry = countries.find(c => c.code === countryCode);
-        if (matchedCountry) {
-          checkAndShowPrompt(matchedCountry);
-        } else {
-          fallbackTimezoneDetection();
-        }
-      } catch (err) {
-        console.warn("Geo-IP detection failed, attempting timezone fallback", err);
-        fallbackTimezoneDetection();
-      }
+    const detectCountry = () => {
+      fallbackTimezoneDetection();
     };
 
     const fallbackTimezoneDetection = () => {

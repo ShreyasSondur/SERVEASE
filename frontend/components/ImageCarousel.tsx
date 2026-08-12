@@ -95,6 +95,13 @@ export default function ImageCarousel({
     }
   };
 
+  const getOptimizedCloudinaryUrl = (url: string, width = 800) => {
+    if (typeof url === "string" && url.includes("res.cloudinary.com") && !url.includes("/f_auto")) {
+      return url.replace("/upload/", `/upload/f_auto,q_auto,w_${width},c_limit/`);
+    }
+    return url;
+  };
+
   return (
     <div 
       className="relative w-full h-full group overflow-hidden rounded-2xl bg-black"
@@ -107,9 +114,10 @@ export default function ImageCarousel({
         {validImages.map((img, index) => (
           <Image
             key={index}
-            src={img}
+            src={getOptimizedCloudinaryUrl(img, 800)}
             alt={`${title} - Image ${index + 1}`}
             fill
+            priority={index === 0}
             sizes="(max-width: 768px) 100vw, 50vw"
             className={`absolute inset-0 object-cover transition-opacity duration-500 ease-in-out ${
               index === activeIndex ? "opacity-100 z-10" : "opacity-0 z-0"
