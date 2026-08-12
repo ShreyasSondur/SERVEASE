@@ -238,15 +238,17 @@ export default function ServiceDetail() {
               Please log in or register for a free account to view this partner's contact details and connect with them.
             </p>
             <div className="flex flex-col gap-3">
-              <Link href={`/login?redirect=/services/${service.id}`}>
-                <button className="w-full bg-[#d4933a] hover:bg-[#c28532] text-white py-3.5 rounded-xl font-bold transition-all shadow-[0_0_15px_rgba(212,147,58,0.25)] cursor-pointer">
-                  Log In
-                </button>
+              <Link 
+                href={`/login?redirect=/services/${service.id}`}
+                className="w-full bg-[#d4933a] hover:bg-[#c28532] text-white py-3.5 rounded-xl font-bold transition-all shadow-[0_0_15px_rgba(212,147,58,0.25)] text-center flex items-center justify-center cursor-pointer touch-manipulation"
+              >
+                Log In
               </Link>
-              <Link href={`/signup?redirect=/services/${service.id}`}>
-                <button className="w-full bg-[#222] border border-[#333] hover:border-[#444] text-[#aaa] hover:text-white py-3.5 rounded-xl font-bold transition-all cursor-pointer">
-                  Register for Free
-                </button>
+              <Link 
+                href={`/signup?redirect=/services/${service.id}`}
+                className="w-full bg-[#222] border border-[#333] hover:border-[#444] text-[#aaa] hover:text-white py-3.5 rounded-xl font-bold transition-all text-center flex items-center justify-center cursor-pointer touch-manipulation"
+              >
+                Register for Free
               </Link>
             </div>
           </div>

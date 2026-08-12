@@ -603,10 +603,12 @@ export default function Deals() {
 
                   {/* Action Buttons */}
                   <div className="grid grid-cols-2 lg:flex lg:flex-col lg:justify-center gap-3 md:gap-4 w-full lg:w-[180px] shrink-0 mt-4 md:mt-6 lg:mt-0">
-                    <Link href={`/deals/${deal.id}`} prefetch={false}>
-                      <button className="w-full bg-white hover:bg-gray-100 text-black py-2.5 md:py-3 rounded-full font-bold text-[13px] md:text-[14px] transition-colors shadow-md cursor-pointer">
-                        View More
-                      </button>
+                    <Link
+                      href={`/deals/${deal.id}`}
+                      prefetch={false}
+                      className="w-full bg-white hover:bg-gray-100 text-black py-2.5 md:py-3 rounded-full font-bold text-[13px] md:text-[14px] transition-colors shadow-md text-center flex items-center justify-center cursor-pointer active:scale-95 touch-manipulation"
+                    >
+                      View More
                     </Link>
                      <button 
                       onClick={() => handleContact(deal)}
@@ -719,15 +721,17 @@ export default function Deals() {
               Please log in or register for a free account to view this partner's contact details and connect with them.
             </p>
             <div className="flex flex-col gap-3">
-              <Link href="/login?redirect=/deals">
-                <button className="w-full bg-[#d4933a] hover:bg-[#c28532] text-white py-3.5 rounded-xl font-bold transition-all shadow-[0_0_15px_rgba(212,147,58,0.25)] cursor-pointer">
-                  Log In
-                </button>
+              <Link 
+                href="/login?redirect=/deals"
+                className="w-full bg-[#d4933a] hover:bg-[#c28532] text-white py-3.5 rounded-xl font-bold transition-all shadow-[0_0_15px_rgba(212,147,58,0.25)] text-center flex items-center justify-center cursor-pointer touch-manipulation"
+              >
+                Log In
               </Link>
-              <Link href="/signup?redirect=/deals">
-                <button className="w-full bg-[#222] border border-[#333] hover:border-[#444] text-[#aaa] hover:text-white py-3.5 rounded-xl font-bold transition-all cursor-pointer">
-                  Register for Free
-                </button>
+              <Link 
+                href="/signup?redirect=/deals"
+                className="w-full bg-[#222] border border-[#333] hover:border-[#444] text-[#aaa] hover:text-white py-3.5 rounded-xl font-bold transition-all text-center flex items-center justify-center cursor-pointer touch-manipulation"
+              >
+                Register for Free
               </Link>
             </div>
           </div>
