@@ -47,9 +47,11 @@ export default function ImageCarousel({
     (img) => typeof img === "string" && img.trim() !== ""
   );
 
+  const [imgError, setImgError] = useState<Record<number, boolean>>({});
+
   if (validImages.length === 0) {
     return (
-      <div className="w-full h-full flex items-center justify-center bg-[#222] text-[#555] rounded-2xl">
+      <div className="w-full h-full min-h-[260px] sm:min-h-[350px] lg:min-h-[400px] flex items-center justify-center bg-[#222] text-[#555] rounded-2xl">
         <span className="text-sm font-semibold tracking-wider">NO IMAGE</span>
       </div>
     );
@@ -104,7 +106,7 @@ export default function ImageCarousel({
 
   return (
     <div
-      className="relative w-full h-full group overflow-hidden rounded-2xl bg-black"
+      className="relative w-full h-full min-h-[260px] sm:min-h-[350px] lg:min-h-[400px] group overflow-hidden rounded-2xl bg-black"
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEndHandler}
@@ -114,10 +116,12 @@ export default function ImageCarousel({
         {validImages.map((img, index) => (
           <Image
             key={index}
-            src={getOptimizedCloudinaryUrl(img, 800)}
+            src={imgError[index] ? img : getOptimizedCloudinaryUrl(img, 800)}
             alt={`${title} - Image ${index + 1}`}
             fill
             priority={index === 0}
+            unoptimized={imgError[index] || !img.includes("res.cloudinary.com")}
+            onError={() => setImgError((prev) => ({ ...prev, [index]: true }))}
             sizes="(max-width: 768px) 100vw, 50vw"
             className={`absolute inset-0 object-cover transition-opacity duration-500 ease-in-out ${index === activeIndex ? "opacity-100 z-10" : "opacity-0 z-0"
               }`}

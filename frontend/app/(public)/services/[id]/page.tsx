@@ -128,7 +128,7 @@ export default function ServiceDetail() {
         <div className="flex flex-col lg:flex-row gap-5 sm:gap-6 mb-6 sm:mb-8 animate-slide-up">
 
           {/* Left: Image Card */}
-          <div className="w-full lg:w-[65%] rounded-2xl min-h-[250px] sm:min-h-[350px] lg:min-h-[400px] shadow-lg overflow-hidden relative">
+          <div className="w-full lg:w-[65%] rounded-2xl aspect-[4/3] sm:aspect-video lg:aspect-auto lg:h-[400px] shadow-lg overflow-hidden relative">
             <ImageCarousel
               images={service.images}
               imageUrl={service.image_url}
