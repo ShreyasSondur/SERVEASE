@@ -95,7 +95,7 @@ export default function Login() {
 
   const handleGoogleLogin = () => {
     // Redirect to backend Google auth endpoint
-    window.location.href = `${API_URL}/auth/google/login`;
+    window.location.href = `${API_URL}/auth/google/login?prompt=select_account`;
   };
 
   return (
